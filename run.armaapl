@@ -1,0 +1,19 @@
+#!/bin/bash
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if ! docker image inspect pepper-workspace > /dev/null 2>&1; then
+  docker build -t pepper-workspace "$SCRIPT_DIR"
+fi
+
+xhost +localhost
+
+clear
+
+docker run --rm -it \
+  -p 9559:9559 \
+  -e DISPLAY=host.docker.internal:0 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v "$SCRIPT_DIR/workspace:/workspace" \
+  pepper-workspace
