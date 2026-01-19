@@ -10,3 +10,7 @@ This document contains a list of notable changes affecting the Pepper robot with
 ### Sun, Jan 18
 
 - Create Docker environment for Apple Silicon machines ([#1](https://github.com/albu-razvan/RA-26/issues/1))
+
+### Mon, Jan 19
+
+- Root Pepper's Tablet and enable WiFi ADB debugging
