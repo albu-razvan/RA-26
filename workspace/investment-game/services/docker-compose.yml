@@ -1,0 +1,5 @@
+services:
+  controller:
+    build: ./controller
+    ports:
+      - "8000:8000"
