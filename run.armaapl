@@ -11,7 +11,8 @@ xhost +localhost
 
 clear
 
-docker run --rm -it \
+docker start -ai pepper-workspace 2>/dev/null || \
+docker run -it \
   -p 9559:9559 \
   -e DISPLAY=host.docker.internal:0 \
   -v /tmp/.X11-unix:/tmp/.X11-unix \
