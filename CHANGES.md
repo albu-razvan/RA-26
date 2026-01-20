@@ -14,3 +14,7 @@ This document contains a list of notable changes affecting the Pepper robot with
 ### Mon, Jan 19
 
 - Root Pepper's Tablet and enable WiFi ADB debugging
+
+### Tue, Jan 20
+
+- Initial Investment Game implementation (server + native Android app) ([#3](https://github.com/albu-razvan/RA-26/issues/3))
