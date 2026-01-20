@@ -20,6 +20,7 @@ import se.chalmers.investmentgame.utils.Handlers;
 
 public class ApiRequest {
     private static final String TAG = "ApiRequest";
+    private static final String API = "http://192.168.0.102:8000";
     private static final Gson GSON = new Gson();
 
     public static <T> void get(String url, Class<T> clazz,
@@ -73,7 +74,7 @@ public class ApiRequest {
         BufferedReader reader = null;
 
         try {
-            URL url = new URL(urlString);
+            URL url = new URL(API + urlString);
             connection = (HttpURLConnection) url.openConnection();
 
             connection.setRequestMethod(method.name());

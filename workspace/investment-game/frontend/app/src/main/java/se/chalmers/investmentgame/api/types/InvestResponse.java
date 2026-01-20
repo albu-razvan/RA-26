@@ -12,6 +12,15 @@ public class InvestResponse {
     @SerializedName("returned")
     private int returned;
 
+    @SerializedName("min_returned")
+    private int minReturned;
+
+    @SerializedName("max_returned")
+    private int maxReturned;
+
+    @SerializedName("round_budget")
+    private int roundBudget;
+
     @SerializedName("bank")
     private int bank;
 
@@ -29,12 +38,24 @@ public class InvestResponse {
         return invested;
     }
 
+    public int getMinReturned() {
+        return minReturned;
+    }
+
+    public int getMaxReturned() {
+        return maxReturned;
+    }
+
     public int getReturned() {
         return returned;
     }
 
     public int getRound() {
         return round;
+    }
+
+    public int getRoundBudget() {
+        return roundBudget;
     }
 
     public int getRoundsRemaining() {

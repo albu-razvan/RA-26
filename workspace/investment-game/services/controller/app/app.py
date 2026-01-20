@@ -1,45 +1,55 @@
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import HTTPException
-import uuid
+from logger import log_game_observation
 import random
+import ulid
 
 app = Flask(__name__)
 
 games = {}
 
-STARTING_BANK = 0
-MAX_ROUNDS = 10
+ROUND_BUDGET = 10
+MAX_ROUNDS = 20
 
-TRUSTWORTHY_RETURN_RATE = 0.8
-UNTRUSTWORTHY_RETURN_RATE = 0.3
+# Expected multipliers (long-run behavior)
+TRUSTWORTHY_MEAN = 1.4
+UNTRUSTWORTHY_MEAN = 0.7
 
-TRUST_MULTIPLIER = 2.0
+STD_DEV = 0.4
+MIN_MULTIPLIER = 0.0
+MAX_MULTIPLIER = 3.0
+
 
 def generate_return(investment, robot_type):
-    if robot_type == "trustworthy":
-        success = random.random() < TRUSTWORTHY_RETURN_RATE
-    else:
-        success = random.random() < UNTRUSTWORTHY_RETURN_RATE
-
-    if success:
-        return int(investment * TRUST_MULTIPLIER)
-    else:
+    if investment == 0:
         return 0
+
+    if robot_type == "trustworthy":
+        mean = TRUSTWORTHY_MEAN
+    else:
+        mean = UNTRUSTWORTHY_MEAN
+
+    multiplier = random.gauss(mean, STD_DEV)
+    multiplier = max(MIN_MULTIPLIER, min(multiplier, MAX_MULTIPLIER))
+
+    return int(round(investment * multiplier))
+
 
 @app.route("/start-game", methods=["POST"])
 def start_game():
-    player_id = str(uuid.uuid4())
+    player_id = str(ulid.new())
 
     games[player_id] = {
         "robot_type": random.choice(["trustworthy", "untrustworthy"]),
-        "bank": STARTING_BANK,
+        "bank": 0,
         "round": 0,
         "max_rounds": MAX_ROUNDS,
     }
 
     return jsonify({
         "player_id": player_id,
-        "bank": STARTING_BANK,
+        "bank": 0,
+        "round_budget": ROUND_BUDGET,
         "max_rounds": MAX_ROUNDS
     })
 
@@ -56,27 +66,41 @@ def invest():
 
     game = games[player_id]
 
-    if investment is None or investment <= 0:
+    if game["round"] >= game["max_rounds"]:
+        return jsonify({"error": "Game already finished"}), 400
+
+    if investment is None or investment < 0:
         return jsonify({"error": "Invalid investment"}), 400
 
-    if investment > game["bank"]:
-        return jsonify({"error": "Insufficient funds"}), 400
+    if investment > ROUND_BUDGET:
+        return jsonify({"error": "Investment exceeds round budget"}), 400
 
     returned = generate_return(investment, game["robot_type"])
 
-    game["bank"] += returned - investment
+    game["bank"] += returned
     game["round"] += 1
 
     response = {
         "round": game["round"],
+        "round_budget": ROUND_BUDGET,
         "invested": investment,
         "returned": returned,
+        "min_returned": int(investment * MIN_MULTIPLIER),
+        "max_returned": int(investment * MAX_MULTIPLIER),
         "bank": game["bank"],
         "rounds_remaining": game["max_rounds"] - game["round"]
     }
 
-    if game["round"] >= game["max_rounds"]:
-        # TODO: save outcome to csv
+    log_game_observation(
+        player_id=player_id,
+        round_number=game["round"],
+        robot_type=game["robot_type"],
+        investment=investment,
+        returned=returned,
+        bank=game["bank"]
+    )
+
+    if game["round"] >= game["max_rounds"]:    
         del games[player_id]
 
     return jsonify(response)

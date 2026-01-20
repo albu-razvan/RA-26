@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="center">
@@ -8,16 +8,6 @@
         android:id="@+id/start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start" />
+        android:text="Start Game" />
 
-    <Space
-        android:layout_width="20dp"
-        android:layout_height="0px" />
-
-    <Button
-        android:id="@+id/invest"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Invest" />
-
-</LinearLayout>
+</RelativeLayout>
