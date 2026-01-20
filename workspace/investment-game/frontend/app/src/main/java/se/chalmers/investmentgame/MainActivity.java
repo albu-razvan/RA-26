@@ -1,8 +1,10 @@
 package se.chalmers.investmentgame;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -10,14 +12,12 @@ import org.json.JSONObject;
 import se.chalmers.investmentgame.api.ApiPromise;
 import se.chalmers.investmentgame.api.ApiRequest;
 import se.chalmers.investmentgame.api.ApiResult;
+import se.chalmers.investmentgame.api.types.Game;
 import se.chalmers.investmentgame.api.types.InvestResponse;
 import se.chalmers.investmentgame.api.types.StartGameResponse;
+import se.chalmers.investmentgame.game.GameActivity;
 
 public class MainActivity extends Activity {
-    private static final String TAG = "MainActivity";
-    private static final String API = "http://192.168.0.102:8000";
-
-    private String playerId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,49 +26,21 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.start).setOnClickListener(view ->
-                ApiRequest.post(API + "/start-game", StartGameResponse.class,
+                ApiRequest.post("/start-game", StartGameResponse.class,
                         new ApiPromise<StartGameResponse>() {
                             @Override
                             public void onSuccess(StartGameResponse result) {
-                                playerId = result.getPlayerId();
+                                Intent intent = new Intent(MainActivity.this, GameActivity.class);
+                                intent.putExtra(GameActivity.GAME_INTENT_KEY, result);
 
-                                Log.i(TAG, "/start-game onSuccess: " + playerId);
-                                Log.i(TAG, "/start-game onSuccess: " + result.getBank());
-                                Log.i(TAG, "/start-game onSuccess: " + result.getMaxRounds());
+                                startActivity(intent);
                             }
 
                             @Override
                             public void onError(ApiResult<StartGameResponse> error) {
-                                Log.e(TAG, "/start-game onError: " + error.error);
+                                Toast.makeText(MainActivity.this,
+                                        error.error, Toast.LENGTH_LONG).show();
                             }
                         }));
-
-        findViewById(R.id.invest).setOnClickListener(view -> {
-            try {
-                JSONObject object = new JSONObject();
-
-                object.put("player_id", playerId);
-                object.put("investment", 3);
-
-                ApiRequest.post(API + "/invest", object,
-                        InvestResponse.class, new ApiPromise<InvestResponse>() {
-                            @Override
-                            public void onSuccess(InvestResponse result) {
-                                Log.i(TAG, "/invest onSuccess: " + result.getInvested());
-                                Log.i(TAG, "/invest onSuccess: " + result.getReturned());
-                                Log.i(TAG, "/invest onSuccess: " + result.getBank());
-                                Log.i(TAG, "/invest onSuccess: " + result.getRound());
-                                Log.i(TAG, "/invest onSuccess: " + result.getRoundsRemaining());
-                            }
-
-                            @Override
-                            public void onError(ApiResult<InvestResponse> error) {
-                                Log.e(TAG, "/invest onError: " + error.error);
-                            }
-                        });
-            } catch (JSONException exception) {
-                Log.e(TAG, "onCreate: ", exception);
-            }
-        });
     }
 }

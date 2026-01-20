@@ -3,3 +3,5 @@ services:
     build: ./controller
     ports:
       - "8000:8000"
+    volumes:
+      - ./controller/observations/:/observations
