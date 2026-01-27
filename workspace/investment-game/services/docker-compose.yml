@@ -5,3 +5,17 @@ services:
       - "8000:8000"
     volumes:
       - ./controller/observations/:/observations
+      - ./controller/app/:/app:ro
+  speech:
+    build: ./speech
+    ports:
+      - "9559:9559"
+      - "9700:9700"
+    volumes:
+      - ./speech/app/:/app:ro
+  whisper:
+    build: ./whisper
+    ports:
+      - "9600:9600"
+    volumes:
+      - ./whisper/app.py/:/app/app.py:ro
