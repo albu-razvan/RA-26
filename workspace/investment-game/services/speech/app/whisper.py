@@ -1,9 +1,9 @@
+import requests
 import wave
 import io
-import requests
 
 CHANNELS = 1
-WHISPER_API_URL = "http://192.168.0.102:9600/transcribe"
+WHISPER_API_URL = "http://whisper:9600/transcribe"
 
 
 def send_to_whisper(audio_bytes, sample_rate, sample_width, success_handler):

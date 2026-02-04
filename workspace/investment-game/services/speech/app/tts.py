@@ -1,31 +1,25 @@
-# TODO: Migrate to gTTS since pyttsx3 2.7 cannot output
-# to a file
-
-import pyttsx3
+import requests
 import uuid
 import os
 
 AUDIO_DIR = "../audio"
-
-engine = pyttsx3.init()
-
-voices = engine.getProperty("voices")
-for voice in voices:
-    if "female" in voice.name.lower():
-        engine.setProperty("voice", voice.id)
-        break
-
-engine.setProperty("rate", 150)
+URL = "http://piper:5000"
 
 
-def to_speech(text):
+def to_speech(text: str):
     if not os.path.exists(AUDIO_DIR):
         os.makedirs(AUDIO_DIR)
 
-    filename = AUDIO_DIR + "/" + str(uuid.uuid4()).replace("-", "") + ".wav"
-    full_path = os.path.abspath(filename)
+    response = requests.post(URL, json={"text": text})
 
-    engine.save_to_file(text, filename)
-    engine.runAndWait()
+    if response.status_code == 200:
+        filename = f"{AUDIO_DIR}/{uuid.uuid4().hex}.wav"
 
-    return full_path
+        with open(filename, "wb") as f:
+            f.write(response.content)
+
+        return os.path.abspath(filename)
+    else:
+        print(f"Error: {response.status_code}")
+
+        return None
