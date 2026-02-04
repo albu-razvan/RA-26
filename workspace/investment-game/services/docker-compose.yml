@@ -1,21 +1,41 @@
 services:
   controller:
     build: ./controller
+    container_name: controller
     ports:
       - "8000:8000"
     volumes:
       - ./controller/observations/:/observations
       - ./controller/app/:/app:ro
+
   speech:
     build: ./speech
+    container_name: speech
     ports:
       - "9559:9559"
       - "9700:9700"
     volumes:
       - ./speech/app/:/app:ro
+
   whisper:
     build: ./whisper
-    ports:
-      - "9600:9600"
+    container_name: whisper
     volumes:
       - ./whisper/app.py/:/app/app.py:ro
+
+  # TODO
+  pepper:
+    build: ./pepper
+    container_name: naoqi
+    volumes:
+      - ./pepper/app/:/app:ro
+
+  # voices: https://rhasspy.github.io/piper-samples
+  tts:
+    build: ./piper
+    container_name: piper
+    # platform: linux/amd64
+    command: >
+      --model en_GB-semaine-medium
+    volumes:
+      - ./piper/models:/models

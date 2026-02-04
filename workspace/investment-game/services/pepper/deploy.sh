@@ -12,14 +12,14 @@ PEPPER_USER="nao"
 PEPPER_HOST="pepper.local"
 PEPPER_PATH="/home/nao"
 
-LOCAL_SCRIPT="$SCRIPT_DIR/audio_player.py"
+LOCAL_SCRIPT="$SCRIPT_DIR/audio_handler.py"
 
-echo "Copying $LOCAL_SCRIPT to $PEPPER_USER@$PEPPER_HOST:$PEPPER_PATH ..."
+echo "Copying audio player script..."
 sshpass -p "$PEPPER_PASS" scp "$LOCAL_SCRIPT" "$PEPPER_USER@$PEPPER_HOST:$PEPPER_PATH"
 
 echo "Starting audio player on Pepper..."
 sshpass -p "$PEPPER_PASS" ssh "$PEPPER_USER@$PEPPER_HOST" << EOF
-pkill -f audio_player.py 2>/dev/null
+pkill -f audio_handler.py 2>/dev/null
 
-nohup python2.7 $PEPPER_PATH/audio_player.py > $PEPPER_PATH/audio_player.log 2>&1 &
+nohup python2.7 $PEPPER_PATH/audio_handler.py > $PEPPER_PATH/audio_handler.log 2>&1 &
 EOF

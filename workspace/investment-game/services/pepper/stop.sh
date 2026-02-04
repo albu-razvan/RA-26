@@ -10,7 +10,7 @@ PEPPER_USER="nao"
 PEPPER_HOST="pepper.local"
 PEPPER_PATH="/home/nao"
 
-SCRIPT_NAME="audio_player.py"
+SCRIPT_NAME="audio_handler.py"
 
 echo "Stopping Pepper's audio player..."
 sshpass -p "$PEPPER_PASS" ssh "$PEPPER_USER@$PEPPER_HOST" << EOF
