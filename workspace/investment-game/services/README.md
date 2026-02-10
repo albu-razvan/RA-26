@@ -14,6 +14,7 @@ Use the provided script to start all services:
 
 ```bash
 export PEPPER_PASS="your_pepper_ssh_password"
+export GEMINI_API_KEY="your_gemini_api_key"
 
 chmod +x run.sh
 ./run.sh
