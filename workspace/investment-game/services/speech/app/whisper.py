@@ -23,7 +23,7 @@ def send_to_whisper(audio_bytes, sample_rate, sample_width, success_handler):
         buffer.seek(0)
 
         files = {"file": ("audio.wav", buffer, "audio/wav")}
-        res = requests.post(WHISPER_API_URL, files=files, timeout=5)
+        res = requests.post(WHISPER_API_URL, files=files)
 
         if res.status_code == 200:
             text = res.json().get("text", "").strip()

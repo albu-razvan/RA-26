@@ -4,7 +4,7 @@ import numpy as np
 import soundfile as sf
 
 app = FastAPI()
-model = WhisperModel("base", device="cpu", compute_type="int8")
+model = WhisperModel("base.en", device="cpu", compute_type="int8")
 
 
 @app.post("/transcribe")

@@ -2,6 +2,8 @@ services:
   controller:
     build: ./controller
     container_name: controller
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "8000:8000"
     volumes:
@@ -13,7 +15,8 @@ services:
     container_name: speech
     ports:
       - "9559:9559"
-      - "9700:9700"
+      - "9700:9700" # sockets
+      - "9701:9701" # http
     volumes:
       - ./speech/app/:/app:ro
 
@@ -30,12 +33,15 @@ services:
     volumes:
       - ./pepper/app/:/app:ro
 
-  # voices: https://rhasspy.github.io/piper-samples
+  # default voices: https://rhasspy.github.io/piper-samples
   tts:
     build: ./piper
     container_name: piper
-    # platform: linux/amd64
     command: >
-      --model en_GB-semaine-medium
+      --m /models/cori/model
+      --length-scale 1.1
+      --noise-scale 0.8
+      --noise-w-scale 0.7
+      --host 0.0.0.0
     volumes:
       - ./piper/models:/models
