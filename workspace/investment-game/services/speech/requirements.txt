@@ -1,5 +1,6 @@
 numpy
 requests
-wyoming
+webrtcvad-wheels
+noisereduce
 fastapi
 uvicorn

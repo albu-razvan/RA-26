@@ -26,7 +26,6 @@ services:
     volumes:
       - ./whisper/app.py/:/app/app.py:ro
 
-  # TODO
   pepper:
     build: ./pepper
     container_name: naoqi
