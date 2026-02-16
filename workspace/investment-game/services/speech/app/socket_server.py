@@ -1,7 +1,9 @@
 import numpy as np
 import threading
 import socket
-import time
+import collections
+import webrtcvad
+import noisereduce as nr
 
 from whisper import send_to_whisper
 from speech import process_speech
@@ -11,11 +13,107 @@ HOST = "0.0.0.0"
 PORT = 9700
 
 SAMPLE_RATE = 16000
-SAMPLE_WIDTH = 2
+# WebRTC VAD only accepts 10ms, 20ms or 30ms frames
+FRAME_DURATION_MS = 20
+FRAME_SIZE_BYTES = int(16000 * 0.02 * 2)
 
-SILENCE_THRESHOLD = 300
-SILENCE_DURATION = 1
-MIN_SENTENCE_LEN = 1
+
+class AudioProcessor:
+    def __init__(self):
+        self.vad = webrtcvad.Vad(3)  # 0 to 3 for aggressiveness
+        self.buffer = b""
+
+        self.triggered = False
+        self.voiced_frames = []
+        self.ring_buffer = collections.deque(maxlen=20)
+
+        self.silence_counter = 0
+        self.SILENCE_LIMIT = 50  # ~1s of silence to end a sentence
+
+        self.RMS_THRESHOLD = 500
+        self.cooldown_frames = 0
+        self.speech_start_threshold = 3
+        self.consecutive_speech = 0
+
+    def get_rms(self, frame):
+        data = np.frombuffer(frame, dtype=np.int16).astype(np.float32)
+
+        return np.sqrt(np.mean(data**2))
+
+    def process_stream(self, raw_chunk):
+        if all(v == 0 for v in raw_chunk[:100]):
+            self.cooldown_frames = 30
+            return None
+
+        self.buffer += raw_chunk
+
+        while len(self.buffer) >= FRAME_SIZE_BYTES:
+            frame = self.buffer[:FRAME_SIZE_BYTES]
+            self.buffer = self.buffer[FRAME_SIZE_BYTES:]
+
+            if self.cooldown_frames > 0:
+                self.cooldown_frames -= 1
+                continue
+
+            rms_value = self.get_rms(frame)
+            is_loud_enough = rms_value > self.RMS_THRESHOLD
+
+            is_speech = self.vad.is_speech(frame, SAMPLE_RATE) and is_loud_enough
+
+            if not self.triggered:
+                self.ring_buffer.append(frame)
+
+                if is_speech:
+                    self.consecutive_speech += 1
+                else:
+                    self.consecutive_speech = 0
+
+                if self.consecutive_speech >= self.speech_start_threshold:
+                    print(f"[VAD] Voice detected")
+
+                    self.triggered = True
+                    self.voiced_frames.extend(self.ring_buffer)
+                    self.ring_buffer.clear()
+                    self.consecutive_speech = 0
+            else:
+                self.voiced_frames.append(frame)
+
+                if not is_speech:
+                    self.silence_counter += 1
+                else:
+                    self.silence_counter = 0
+
+                if self.silence_counter > self.SILENCE_LIMIT:
+                    print("[VAD] Processing audio chunk...")
+
+                    self.triggered = False
+                    self.silence_counter = 0
+
+                    full_audio = b"".join(self.voiced_frames)
+                    self.voiced_frames = []
+
+                    if len(full_audio) < 8000:
+                        return None
+
+                    return self.clean_audio(full_audio)
+
+        return None
+
+    def clean_audio(self, audio_bytes):
+        try:
+            data_np = np.frombuffer(audio_bytes, dtype=np.int16)
+
+            if len(data_np) < 4000:
+                return audio_bytes
+
+            reduced_noise = nr.reduce_noise(
+                y=data_np, sr=SAMPLE_RATE, stationary=True, prop_decrease=0.75
+            )
+
+            return reduced_noise.tobytes()
+        except Exception as e:
+            print("Noise reduction failed:", e)
+            return audio_bytes
 
 
 def success_handler(text):
@@ -29,6 +127,8 @@ def start_sock_server():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+    processor = AudioProcessor()
+
     try:
         sock.bind((HOST, PORT))
         sock.listen(1)
@@ -36,74 +136,35 @@ def start_sock_server():
 
         # Sorry Francisco...
         while True:
-            conn, address = sock.accept()
+            connection, address = sock.accept()
             print("Connected to {}".format(address[0]))
 
-            sentence_buffer = b""
-            residual_buffer = b""
-            silence_start_time = None
-            is_speaking = False
+            try:
+                while True:
+                    data = connection.recv(4096)
+                    if not data:
+                        break
 
-            while True:
-                data = conn.recv(12800)  # 4 channels
-                if not data:
-                    break
+                    sentence = processor.process_stream(data)
+                    if sentence:
+                        threading.Thread(
+                            target=send_to_whisper,
+                            args=(
+                                sentence,
+                                SAMPLE_RATE,
+                                2,  # Sample width
+                                success_handler,
+                            ),
+                        ).start()
+            except Exception as e:
+                print(f"Connection error: {e}")
+            finally:
+                connection.close()
+                print("Lost connection, waiting...")
 
-                combined_data = residual_buffer + data
-
-                # each frame is 4 channels * 2 bytes = 8 bytes
-                bytes_per_frame = 4 * SAMPLE_WIDTH
-                length_to_process = (
-                    len(combined_data) // bytes_per_frame
-                ) * bytes_per_frame
-
-                if length_to_process == 0:
-                    residual_buffer = combined_data
-                    continue
-
-                process_now = combined_data[:length_to_process]
-                residual_buffer = combined_data[length_to_process:]
-
-                raw_data = np.frombuffer(process_now, dtype=np.int16)
-                all_channels = raw_data.reshape(-1, 4)
-
-                audio_data = all_channels[:, 0]
-                rms = np.sqrt(np.mean(audio_data.astype(np.float32) ** 2))
-
-                current_mono_bytes = audio_data.tobytes()
-
-                if rms > SILENCE_THRESHOLD:
-                    if not is_speaking:
-                        print("Speech started...")
-
-                    is_speaking = True
-                    sentence_buffer += current_mono_bytes
-                    silence_start_time = None
-                elif is_speaking:
-                    sentence_buffer += current_mono_bytes
-
-                    if silence_start_time is None:
-                        silence_start_time = time.time()
-
-                    if time.time() - silence_start_time > SILENCE_DURATION:
-                        if len(sentence_buffer) > (
-                            SAMPLE_RATE * SAMPLE_WIDTH * MIN_SENTENCE_LEN
-                        ):
-                            threading.Thread(
-                                target=send_to_whisper,
-                                args=(
-                                    sentence_buffer,
-                                    SAMPLE_RATE,
-                                    SAMPLE_WIDTH,
-                                    success_handler,
-                                ),
-                            ).start()
-
-                        sentence_buffer = b""
-                        is_speaking = False
-                        silence_start_time = None
-
-            print("Lost connection")
+                processor.triggered = False
+                processor.voiced_frames = []
+                processor.buffer = b""
 
     except KeyboardInterrupt:
         print("Stopping...")

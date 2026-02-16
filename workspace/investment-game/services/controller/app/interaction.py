@@ -1,5 +1,4 @@
 import json
-import threading
 import requests
 
 from gemini import generate_response
@@ -8,8 +7,7 @@ conversation_cache = {}
 MAX_HISTORY = 20
 
 SPEECH_API_URL = "http://speech:9701/speak"
-
-# TODO: add movement support
+PEPPER_API_URL = "http://pepper:8080/animate"
 
 _PROMPT_TEMPLATE = """
 SYSTEM INSTRUCTION:
@@ -40,11 +38,16 @@ CONVERSATION LOGIC:
 
 RESPONSE FORMAT:
 Always respond with valid JSON like:
-{{"text": "<what Pepper says>", "movements": "<empty string for now>"}}
+{{"text": "<what Pepper says>", "movement": "<
+choose one from the following or default to undefined:
+["point", "open_arm", "wide_arms", "offer_hands", "lean", "applause", "goodbye"]
+>"}}
 
 You are aware that the person may sometimes speak to someone else nearby and not to you.
 If the user input appears to be directed to another person and not to you, you must not respond verbally.
 In that case, return an empty string in the "text" field.
+
+The movement is the animation that the robot will perform. Make sure you vary them and are expressive!
 
 USER INPUT: "{user_input}"
 """
@@ -184,5 +187,7 @@ def handle_speech(input, game_state):
 
 
 def _handle_movement(movement):
-    # TODO
-    pass
+    if movement is not None:
+        response = requests.post(PEPPER_API_URL, json={"action": movement})
+
+        print(response)
