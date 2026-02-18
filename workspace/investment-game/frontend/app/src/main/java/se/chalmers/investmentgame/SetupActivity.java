@@ -59,7 +59,7 @@ public class SetupActivity extends Activity {
         }
 
         ApiRequest.setBaseUrl(ip);
-        ApiRequest.get("/status", Object.class, new ApiPromise<Object>() {
+        ApiRequest.get(this, "/status", Object.class, new ApiPromise<Object>() {
             @Override
             public void onSuccess(Object data) {
                 Intent intent = new Intent(SetupActivity.this, MainActivity.class);

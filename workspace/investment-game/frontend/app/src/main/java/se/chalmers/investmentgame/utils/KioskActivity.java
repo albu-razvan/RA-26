@@ -76,6 +76,17 @@ public class KioskActivity extends Activity {
         IS_TASK_IN_LOCK_MODE = false;
     }
 
+    @Override
+    public void onBackPressed() {
+        if (isBackPressEnabled()) {
+            super.onBackPressed();
+        }
+    }
+
+    protected boolean isBackPressEnabled() {
+        return false;
+    }
+
     private void hideSystemUI() {
         View decorView = getWindow().getDecorView();
         decorView.setSystemUiVisibility(

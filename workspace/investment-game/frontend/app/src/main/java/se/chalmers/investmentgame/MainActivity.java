@@ -20,7 +20,7 @@ public class MainActivity extends KioskActivity {
         setContentView(R.layout.activity_main);
 
         findViewById(R.id.start).setOnClickListener(view ->
-                ApiRequest.post("/start-game", StartGameResponse.class,
+                ApiRequest.post(this, "/start-game", StartGameResponse.class,
                         new ApiPromise<StartGameResponse>() {
                             @Override
                             public void onSuccess(StartGameResponse result) {

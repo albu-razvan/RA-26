@@ -28,7 +28,6 @@ public class GameActivity extends KioskActivity {
         super.onCreate(savedInstanceState);
 
         StartGameResponse startGameResponse = getIntent().getParcelableExtra(GAME_INTENT_KEY);
-
         if (startGameResponse == null) {
             finish();
 
@@ -49,7 +48,7 @@ public class GameActivity extends KioskActivity {
 
         recycler.setLayoutManager(new LinearLayoutManager(this,
                 LinearLayoutManager.HORIZONTAL, false));
-        recycler.setAdapter(new GameRecyclerAdapter(getLayoutInflater(), game));
+        recycler.setAdapter(new GameRecyclerAdapter(this, game));
     }
 
     private void update(Game game) {
@@ -60,42 +59,50 @@ public class GameActivity extends KioskActivity {
             startActivity(intent);
             finishAfterTransition();
         } else {
-            bank.setText(String.valueOf(game.getBank()));
+            bank.animate().scaleX(1.2f)
+                    .scaleY(1.2f)
+                    .setDuration(100)
+                    .withEndAction(() -> {
+                        bank.setText(String.valueOf(game.getBank()));
+                        bank.animate()
+                                .scaleX(1.0f)
+                                .scaleY(1.0f)
+                                .setDuration(300);
+                    });
+
             budget.setText(String.valueOf(game.getRoundBudget()));
+            int invVal = game.getInvested();
+            int retVal = game.getReturned();
 
-            int invested = game.getInvested();
-            int returned = game.getReturned();
-
-            investmentVisualization.setCurrentProgress(getProgress(game, invested, returned));
-
-            this.returned.setText(String.valueOf(returned));
-            this.invested.setText(String.valueOf(invested));
+            if (invVal == -1 || retVal == -1) {
+                investmentVisualization.setCurrentProgress(0f);
+                returned.setText("");
+                invested.setText("");
+            } else {
+                investmentVisualization.setCurrentProgress(getProgress(game, invVal, retVal));
+                invested.setText("Invested: " + invVal);
+                returned.setText("Returned: " + retVal);
+            }
         }
     }
 
     private float getProgress(Game game, int invested, int returned) {
-        int minReturn = game.getMinReturned();
-        int maxReturn = game.getMaxReturned();
-
-        float progress;
-
         if (invested <= 0) {
-            progress = 0f;
-        } else {
-            float gain = returned - invested;
-
-            float maxGain = maxReturn - invested;
-            float maxLoss = invested - minReturn;
-
-            if (gain >= 0 && maxGain > 0) {
-                progress = gain / maxGain;
-            } else if (gain < 0 && maxLoss > 0) {
-                progress = gain / maxLoss;
-            } else {
-                progress = 0f;
-            }
+            return 0f;
         }
 
-        return progress;
+        float gain = returned - invested;
+        float maxGain = game.getMaxReturned() - invested;
+        float maxLoss = invested - game.getMinReturned();
+
+        if (gain >= 0 && maxGain > 0) {
+            return gain / maxGain;
+        }
+
+        if (gain < 0 && maxLoss > 0) {
+            return gain / maxLoss;
+        }
+
+        return 0f;
     }
 }

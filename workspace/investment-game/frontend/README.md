@@ -8,6 +8,12 @@ The latest version of the game should already be loaded on Pepper's tablet. If s
 
 If the application is not installed, you will need to sideload it.
 
+> **NOTE:** The tablet sets the animation scale on reboot to `0`. Make sure all scale parameters are set to `1`. Go to _`Settings > Developer options`_ and look for:
+>
+> - _Window animation scale_
+> - _Transition animation scale_
+> - _Animator duration scale_
+
 ### Prerequisites
 
 Before installing the app, make sure you have the following:

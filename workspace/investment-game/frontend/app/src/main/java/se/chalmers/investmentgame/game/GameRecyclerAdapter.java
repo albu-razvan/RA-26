@@ -1,11 +1,14 @@
 package se.chalmers.investmentgame.game;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
 import android.util.Log;
+import android.view.HapticFeedbackConstants;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.TextView;
+import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -21,56 +24,52 @@ import se.chalmers.investmentgame.api.types.Game;
 import se.chalmers.investmentgame.api.types.InvestResponse;
 
 public class GameRecyclerAdapter extends RecyclerView.Adapter<GameRecyclerAdapter.ViewHolder> {
-    private static final String TAG = "GameRecyclerAdapter";
+    private static final String TAG = "Adapter";
 
-    private final LayoutInflater inflater;
+    private final Activity activity;
     private final Game game;
 
     private int maxInvestment;
 
-    GameRecyclerAdapter(LayoutInflater inflater, @NonNull Game game) {
+    GameRecyclerAdapter(Activity activity, @NonNull Game game) {
         this.maxInvestment = game.getRoundBudget();
-        this.inflater = inflater;
+        this.activity = activity;
         this.game = game;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        private final TextView textView;
+        private final Button button;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-
-            textView = itemView.findViewById(R.id.amount);
+            button = itemView.findViewById(R.id.amount);
         }
     }
 
-    @SuppressLint("InflateParams")
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new ViewHolder(inflater.inflate(R.layout.investment_view_holder,
-                null, false));
+        return new ViewHolder(activity.getLayoutInflater()
+                .inflate(R.layout.investment_view_holder, parent, false));
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        holder.textView.setText(String.valueOf(position));
-        holder.itemView.setOnClickListener(view -> {
+        holder.button.setText(String.valueOf(position));
+        holder.button.setOnClickListener(view -> {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
             try {
                 JSONObject object = new JSONObject();
-
                 object.put("player_id", game.getPlayerId());
                 object.put("investment", holder.getAbsoluteAdapterPosition());
 
-                ApiRequest.post("/invest", object,
+                ApiRequest.post(activity, "/invest", object,
                         InvestResponse.class, new ApiPromise<InvestResponse>() {
                             @Override
                             @SuppressLint("NotifyDataSetChanged")
                             public void onSuccess(InvestResponse result) {
                                 game.update(result);
-
-                                int newMaxInvestment = game.getRoundBudget();
-                                if (newMaxInvestment != maxInvestment) {
+                                if (game.getRoundBudget() != maxInvestment) {
                                     maxInvestment = game.getRoundBudget();
                                     notifyDataSetChanged();
                                 }
@@ -78,17 +77,17 @@ public class GameRecyclerAdapter extends RecyclerView.Adapter<GameRecyclerAdapte
 
                             @Override
                             public void onError(ApiResult<InvestResponse> error) {
-                                Log.e(TAG, "/invest onError: " + error.error);
+                                Log.e(TAG, "Error: " + error.error);
                             }
                         });
             } catch (JSONException exception) {
-                Log.e(TAG, "onClick: ", exception);
+                Log.e(TAG, "onBindViewHolder: ", exception);
             }
         });
     }
 
     @Override
     public int getItemCount() {
-        return Math.max(0, maxInvestment + 1);
+        return maxInvestment + 1;
     }
 }
