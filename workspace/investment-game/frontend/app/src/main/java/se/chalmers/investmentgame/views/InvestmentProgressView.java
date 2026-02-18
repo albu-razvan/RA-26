@@ -5,27 +5,25 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.View;
 
 import androidx.annotation.FloatRange;
-import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class InvestmentProgressView extends View {
-    private final int COLOR_GAIN = Color.parseColor("#4CAF50");
-    private final int COLOR_LOSS = Color.parseColor("#F44336");
-    private final int COLOR_BG = Color.parseColor("#E0E0E0");
+    private final int COLOR_GAIN = Color.parseColor("#66BB6A");
+    private final int COLOR_LOSS = Color.parseColor("#EF5350");
+    private final int COLOR_BG = Color.parseColor("#33000000");
 
-    private Paint paint;
-    private Paint backgroundPaint;
-    private float currentProgress;
+    private Paint paint, backgroundPaint, glossPaint;
+    private float currentProgress = 0;
 
     public InvestmentProgressView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
-
         init();
     }
 
@@ -34,7 +32,9 @@ public class InvestmentProgressView extends View {
         backgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         backgroundPaint.setColor(COLOR_BG);
 
-        currentProgress = 0;
+        glossPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        glossPaint.setColor(Color.WHITE);
+        glossPaint.setAlpha(40);
     }
 
     public void setCurrentProgress(@FloatRange(from = -1, to = 1) float progress) {
@@ -47,38 +47,47 @@ public class InvestmentProgressView extends View {
     @SuppressLint("DrawAllocation")
     protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
+        float width = getWidth(), height = getHeight();
+        float centerX = width / 2f, centerY = height / 2f;
+        float barHeight = height * 0.6f, radius = barHeight / 2f;
 
-        float width = getWidth();
-        float height = getHeight();
-        float centerX = width / 2f;
-        float centerY = height / 2f;
-        float barHeight = height * 0.5f;
-        float cornerRadius = 15f;
-
-        RectF bgRect = new RectF(0, centerY - barHeight / 2,
-                width, centerY + barHeight / 2);
-        canvas.drawRoundRect(bgRect, cornerRadius, cornerRadius, backgroundPaint);
+        // Track
+        RectF bgRect = new RectF(0, centerY - barHeight / 2, width, centerY + barHeight / 2);
+        canvas.drawRoundRect(bgRect, radius, radius, backgroundPaint);
 
         if (currentProgress != 0) {
-            boolean isGain = currentProgress > 0;
-            paint.setColor(isGain ? COLOR_GAIN : COLOR_LOSS);
+            paint.setColor(currentProgress > 0 ? COLOR_GAIN : COLOR_LOSS);
 
-            float left, right;
-            if (isGain) {
-                left = centerX;
-                right = centerX + (centerX * currentProgress);
+            float progressWidth = (width / 2f) * Math.abs(currentProgress);
+            float left = currentProgress > 0 ? centerX : centerX - progressWidth;
+            float right = currentProgress > 0 ? centerX + progressWidth : centerX;
+
+            RectF progressRect = new RectF(left, centerY - barHeight / 2, right, centerY + barHeight / 2);
+
+            float[] radii;
+            if (currentProgress > 0) {
+                radii = new float[]{0, 0, radius, radius, radius, radius, 0, 0};
             } else {
-                left = centerX + (centerX * currentProgress);
-                right = centerX;
+                radii = new float[]{radius, radius, 0, 0, 0, 0, radius, radius};
             }
 
-            RectF progressRect = new RectF(left, centerY - barHeight / 2,
-                    right, centerY + barHeight / 2);
-            canvas.drawRect(progressRect, paint);
+            Path progressPath = new Path();
+            progressPath.addRoundRect(progressRect, radii, Path.Direction.CW);
+            canvas.drawPath(progressPath, paint);
+
+            canvas.save();
+
+            canvas.clipPath(progressPath);
+            RectF glossRect = new RectF(left, progressRect.top, right, centerY - barHeight / 6);
+            canvas.drawRect(glossRect, glossPaint);
+
+            canvas.restore();
         }
 
-        paint.setColor(Color.GRAY);
-        canvas.drawRect(centerX - 2, centerY - (barHeight * 0.7f) / 2, centerX + 2,
-                centerY + (barHeight * 0.7f) / 2, paint);
+        // Divider
+        paint.setColor(Color.WHITE);
+        paint.setAlpha(150);
+        canvas.drawRect(centerX - 1.5f, centerY - (barHeight / 2),
+                centerX + 1.5f, centerY + (barHeight / 2), paint);
     }
 }

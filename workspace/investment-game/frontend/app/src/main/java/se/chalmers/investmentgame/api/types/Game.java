@@ -25,10 +25,10 @@ public class Game {
         this.listener = listener;
 
         this.roundsRemaining = maxRounds;
-        this.minReturned = 0;
-        this.maxReturned = 0;
-        this.invested = 0;
-        this.returned = 0;
+        this.minReturned = -1;
+        this.maxReturned = -1;
+        this.invested = -1;
+        this.returned = -1;
         this.round = 0;
     }
 

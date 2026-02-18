@@ -20,4 +20,9 @@ public class GameOverActivity extends KioskActivity {
         ((TextView) findViewById(R.id.bank)).setText(String.valueOf(getIntent()
                 .getIntExtra(BANK_INTENT_KEY, 0)));
     }
+
+    @Override
+    protected boolean isBackPressEnabled() {
+        return true;
+    }
 }

@@ -1,5 +1,6 @@
 package se.chalmers.investmentgame.api;
 
+import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -16,6 +17,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
+import se.chalmers.investmentgame.GameApplication;
 import se.chalmers.investmentgame.utils.Handlers;
 
 public class ApiRequest {
@@ -28,10 +30,10 @@ public class ApiRequest {
         API = "http://" + ip + ":8000";
     }
 
-    public static <T> void get(String url, Class<T> clazz,
+    public static <T> void get(Context context, String url, Class<T> clazz,
                                @NonNull ApiPromise<T> promise) {
         Handlers.EXECUTOR.execute(() -> {
-            ApiResult<T> result = request(url, Method.GET, null, clazz);
+            ApiResult<T> result = request(context, url, Method.GET, null, clazz);
 
             Handlers.MAIN_HANDLER.post(() -> {
                 if (result.data != null) {
@@ -43,10 +45,10 @@ public class ApiRequest {
         });
     }
 
-    public static <T> void post(String url, Class<T> clazz,
+    public static <T> void post(Context context, String url, Class<T> clazz,
                                 @NonNull ApiPromise<T> promise) {
         Handlers.EXECUTOR.execute(() -> {
-            ApiResult<T> result = request(url, Method.POST, null, clazz);
+            ApiResult<T> result = request(context, url, Method.POST, null, clazz);
 
             Handlers.MAIN_HANDLER.post(() -> {
                 if (result.data != null) {
@@ -58,10 +60,10 @@ public class ApiRequest {
         });
     }
 
-    public static <T> void post(String url, JSONObject body,
+    public static <T> void post(Context context, String url, JSONObject body,
                                 Class<T> clazz, @NonNull ApiPromise<T> promise) {
         Handlers.EXECUTOR.execute(() -> {
-            ApiResult<T> result = request(url, Method.POST, body, clazz);
+            ApiResult<T> result = request(context, url, Method.POST, body, clazz);
 
             Handlers.MAIN_HANDLER.post(() -> {
                 if (result.data != null) {
@@ -73,12 +75,15 @@ public class ApiRequest {
         });
     }
 
-    private static <T> ApiResult<T> request(String urlString,
+    private static <T> ApiResult<T> request(Context context, String urlString,
                                             Method method, JSONObject body, Class<T> responseClass) {
         HttpURLConnection connection = null;
+        Runnable cleanupRunnable = null;
         BufferedReader reader = null;
 
         try {
+            cleanupRunnable = GameApplication.showLoadingDialog(context);
+
             URL url = new URL(API + urlString);
             connection = (HttpURLConnection) url.openConnection();
 
@@ -133,6 +138,10 @@ public class ApiRequest {
 
             if (connection != null) {
                 connection.disconnect();
+            }
+
+            if (cleanupRunnable != null) {
+                cleanupRunnable.run();
             }
         }
     }
