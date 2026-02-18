@@ -1,7 +1,7 @@
 import socket
 import os
 
-PEPPER_IP = "192.168.0.100"
+PEPPER_IP = os.environ.get("ROBOT_IP", "192.168.0.100")
 PEPPER_PORT = 6000
 
 from tts import to_speech

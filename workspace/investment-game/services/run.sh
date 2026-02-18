@@ -6,6 +6,11 @@ if [[ -z "${GEMINI_API_KEY:-}" ]]; then
     exit 1
 fi
 
+if [[ -z "${ROBOT_IP:-}" ]]; then
+    echo "Error: ROBOT_IP is not set. Please export ROBOT_IP first."
+    exit 1
+fi
+
 # Make sure all the resolved symlinks are cleaned up here
 trap '
 echo "Cleaning up resolved symlinks..."

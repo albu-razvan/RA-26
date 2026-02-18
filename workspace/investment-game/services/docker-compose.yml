@@ -13,6 +13,8 @@ services:
   speech:
     build: ./speech
     container_name: speech
+    environment:
+      - ROBOT_IP=${ROBOT_IP}
     ports:
       - "9559:9559"
       - "9700:9700" # sockets
@@ -29,6 +31,8 @@ services:
   pepper:
     build: ./pepper
     container_name: naoqi
+    environment:
+      - ROBOT_IP=${ROBOT_IP}
     volumes:
       - ./pepper/app/:/app:ro
 

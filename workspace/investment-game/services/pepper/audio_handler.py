@@ -9,7 +9,7 @@ from naoqi import ALProxy, ALModule, ALBroker
 
 PEPPER_IP = "127.0.0.1"
 NAOQI_PORT = 9559
-REMOTE_REC_IP = "192.168.0.102"
+REMOTE_REC_IP = os.environ.get("REMOTE_REC_IP", "192.168.0.102")
 REMOTE_REC_PORT = 9700
 
 FILE_IN_HOST = ""

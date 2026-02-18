@@ -1,10 +1,11 @@
 import threading
+import os
 
 from bottle import route, run, request, response
 from animations import PepperAnimation
 from naoqi import ALProxy
 
-ROBOT_IP = "192.168.0.100"
+ROBOT_IP = os.environ.get("ROBOT_IP", "192.168.0.100")
 PORT = 9559
 
 
