@@ -1,14 +1,14 @@
 package se.chalmers.investmentgame.game;
 
-import android.app.Activity;
 import android.os.Bundle;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
 
 import se.chalmers.investmentgame.R;
+import se.chalmers.investmentgame.utils.KioskActivity;
 
-public class GameOverActivity extends Activity {
+public class GameOverActivity extends KioskActivity {
     public static final String BANK_INTENT_KEY = "BankGameValue";
 
     @Override

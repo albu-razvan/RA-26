@@ -1,23 +1,17 @@
 package se.chalmers.investmentgame;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Toast;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import se.chalmers.investmentgame.api.ApiPromise;
 import se.chalmers.investmentgame.api.ApiRequest;
 import se.chalmers.investmentgame.api.ApiResult;
-import se.chalmers.investmentgame.api.types.Game;
-import se.chalmers.investmentgame.api.types.InvestResponse;
 import se.chalmers.investmentgame.api.types.StartGameResponse;
 import se.chalmers.investmentgame.game.GameActivity;
+import se.chalmers.investmentgame.utils.KioskActivity;
 
-public class MainActivity extends Activity {
+public class MainActivity extends KioskActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

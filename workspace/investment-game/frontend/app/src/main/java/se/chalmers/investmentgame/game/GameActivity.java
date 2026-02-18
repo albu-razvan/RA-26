@@ -1,9 +1,7 @@
 package se.chalmers.investmentgame.game;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -13,9 +11,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import se.chalmers.investmentgame.R;
 import se.chalmers.investmentgame.api.types.Game;
 import se.chalmers.investmentgame.api.types.StartGameResponse;
+import se.chalmers.investmentgame.utils.KioskActivity;
 import se.chalmers.investmentgame.views.InvestmentProgressView;
 
-public class GameActivity extends Activity {
+public class GameActivity extends KioskActivity {
     public static final String GAME_INTENT_KEY = "StartGameResponse";
 
     private InvestmentProgressView investmentVisualization;

@@ -1,6 +1,9 @@
 package se.chalmers.investmentgame;
 
 import android.app.Activity;
+import android.app.admin.DevicePolicyManager;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
@@ -14,8 +17,6 @@ import se.chalmers.investmentgame.api.ApiRequest;
 import se.chalmers.investmentgame.api.ApiResult;
 
 public class SetupActivity extends Activity {
-
-    private static final int PORT = 8000;
     private static final Pattern IP_PATTERN =
             Pattern.compile(
                     "^((25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)\\.){3}" +
@@ -26,6 +27,19 @@ public class SetupActivity extends Activity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        DevicePolicyManager devicePolicyManager =
+                (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        ComponentName adminComponent = new ComponentName(this, GameDeviceAdminReceiver.class);
+
+        if (devicePolicyManager.isDeviceOwnerApp(getPackageName())) {
+            devicePolicyManager.setLockTaskPackages(adminComponent, new String[]{getPackageName()});
+        } else {
+            String message = "App is not a Device Owner. Did you read the README ಠಿ_ಠ?";
+
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            finishAndRemoveTask();
+        }
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_setup);
 
