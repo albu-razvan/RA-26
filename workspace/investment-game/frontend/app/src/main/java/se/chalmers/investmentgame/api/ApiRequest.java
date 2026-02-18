@@ -20,8 +20,13 @@ import se.chalmers.investmentgame.utils.Handlers;
 
 public class ApiRequest {
     private static final String TAG = "ApiRequest";
-    private static final String API = "http://192.168.0.102:8000";
     private static final Gson GSON = new Gson();
+
+    private static String API;
+
+    public static void setBaseUrl(String ip) {
+        API = "http://" + ip + ":8000";
+    }
 
     public static <T> void get(String url, Class<T> clazz,
                                @NonNull ApiPromise<T> promise) {

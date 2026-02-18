@@ -29,6 +29,11 @@ def api_handle_speech():
         return jsonify({"error": str(exception)}), 500
 
 
+@app.route("/status", methods=["GET"])
+def api_status():
+    return jsonify({"status": "alive"}), 200
+
+
 @app.errorhandler(HTTPException)
 def handle_http_exception(exception):
     response = exception.get_response()

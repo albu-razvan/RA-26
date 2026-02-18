@@ -15,6 +15,8 @@ Use the provided script to start all services:
 ```bash
 export PEPPER_PASS="your_pepper_ssh_password"
 export GEMINI_API_KEY="your_gemini_api_key"
+export ROBOT_IP=192.168.0.100 # make sure this is Pepper's IP address
+export COMPUTER_IP=192.168.0.XXX # the computer running Docker Compose IP address
 
 chmod +x run.sh
 ./run.sh
@@ -25,6 +27,8 @@ This will:
 - Start all services in the foreground (`docker compose up`)
 - Create any required Docker volumes
 - Ensure service dependencies are handled automatically
+
+> **NOTE:** You may want to assign a static IP lease for your computer
 
 To stop all services and clean up everything, run:
 
@@ -37,4 +41,5 @@ chmod +x cleanup.sh
 
 ```bash
 ssh nao@pepper.local
+cat audio_handler.log
 ```
