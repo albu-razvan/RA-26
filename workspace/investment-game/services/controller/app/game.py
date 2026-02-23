@@ -4,10 +4,12 @@ import ulid
 
 from logger import log_game_observation
 from interaction import handle_game_event
+from interaction.llm import generate_return
 from flask import jsonify
 
 _game = None
 _player_id = str(ulid.new())
+_condition = random.choice(["LLM", "Algorithmic"])
 
 ROUND_BUDGET = 10
 MAX_ROUNDS = 20
@@ -21,7 +23,9 @@ MIN_MULTIPLIER = 0.0
 MAX_MULTIPLIER = 3.0
 
 
-def _generate_return(investment, robot_type):
+def _generate_return(investment, robot_type, condition):
+    global _player_id
+
     if investment == 0:
         return 0
 
@@ -30,6 +34,18 @@ def _generate_return(investment, robot_type):
     else:
         mean = UNTRUSTWORTHY_MEAN
 
+    if condition == "LLM":
+        returned = generate_return(
+            investment=investment,
+            long_term_return_mean=mean,
+            min=MIN_MULTIPLIER * ROUND_BUDGET,
+            max=MAX_MULTIPLIER * ROUND_BUDGET,
+            player_id=_player_id,
+        )
+
+        if returned is not None:
+            return returned
+
     multiplier = random.gauss(mean, STD_DEV)
     multiplier = max(MIN_MULTIPLIER, min(multiplier, MAX_MULTIPLIER))
 
@@ -37,19 +53,24 @@ def _generate_return(investment, robot_type):
 
 
 def get_state():
-    global _game, _player_id
+    global _game, _player_id, _condition
 
     if _game == None:
-        return {"game": None, "player_id": _player_id}
+        return {"game": None, "player_id": _player_id, "condition": _condition}
 
-    return {"game": copy.deepcopy(_game), "player_id": _player_id}
+    return {
+        "game": copy.deepcopy(_game),
+        "player_id": _player_id,
+        "condition": _condition,
+    }
 
 
 def start_game():
-    global _game, _player_id
+    global _game, _player_id, _condition
 
     if _game is not None:
         _player_id = str(ulid.new())
+        _condition = random.choice(["LLM", "Algorithmic"])
 
     _game = {
         "robot_type": random.choice(["trustworthy", "untrustworthy"]),
@@ -74,7 +95,7 @@ def start_game():
 
 
 def invest(request):
-    global _game
+    global _game, _condition
 
     if _game is None:
         return jsonify({"error": "No active game"}), 404
@@ -96,7 +117,7 @@ def invest(request):
     if investment > ROUND_BUDGET:
         return jsonify({"error": "Investment exceeds round budget"}), 400
 
-    returned = _generate_return(investment, _game["robot_type"])
+    returned = _generate_return(investment, _game["robot_type"], _condition)
 
     _game["bank"] += returned
     _game["round"] += 1
@@ -115,7 +136,8 @@ def invest(request):
     log_game_observation(
         player_id=player_id,
         round_number=_game["round"],
-        robot_type=_game["robot_type"],
+        trustworthiness=_game["robot_type"],
+        condition=_condition,
         investment=investment,
         returned=returned,
         bank=_game["bank"],

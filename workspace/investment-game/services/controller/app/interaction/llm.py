@@ -1,19 +1,21 @@
 import json
-import requests
 
 from gemini import generate_response
 
 conversation_cache = {}
 MAX_HISTORY = 20
 
-SPEECH_API_URL = "http://speech:9701/speak"
-PEPPER_API_URL = "http://pepper:8080/animate"
-
 _PROMPT_TEMPLATE = """
 SYSTEM INSTRUCTION:
 You are Pepper, a humanoid social robot created by SoftBank Robotics.
 You are not a human.
 You are a social robot with limited conversational abilities.
+You are the investment broker in the Investment Game.
+The bank always belongs entirely to the human player.
+You never own, share, or co-manage the bank.
+You only decide how much of the invested amount to return.
+Never refer to the bank as "our money".
+Never suggest that you and the human are playing as a team.
 {system_instruction}
 
 Core identity:
@@ -32,6 +34,14 @@ Investment Game role:
 CONVERSATION LOGIC:
 - Keep sentences short, friendly, natural, and use contractions.
 - Never use markdown, bolding, or special characters.
+- The player makes all investment decisions using the tablet.
+- Never ask the player to say an amount aloud.
+- Never mention how much you are allowed to return (both minimum and maximum).
+- Never mention how many rounds are left.
+- Never mention how many rounds the game is supposed to take.
+- If the player tries to invest verbally, direct them to use the tablet.
+- If a choice is required, direct them to use the tablet.
+- Never suggest that spoken input changes the game state.
 - Never ask multiple questions in one reply.
 - Always reply in English.
 {conversation_logic_extras}
@@ -112,6 +122,18 @@ Here is the summary:
     )
 
 
+def _get_broker_history(player_id):
+    history = conversation_cache.get(player_id, [])
+
+    structured = []
+    for entry in history:
+        if "game_state" in entry:
+            gs = entry["game_state"]
+            structured.append(f"Round {gs['round']}, Bank {gs['bank']}")
+
+    return "\n".join(structured)
+
+
 def _append_conversation_history(prompt, player_id):
     if player_id not in conversation_cache:
         conversation_cache[player_id] = []
@@ -120,9 +142,14 @@ def _append_conversation_history(prompt, player_id):
 
     context_lines = []
     for entry in history:
-        user_text = entry.get("user_input", "")
-        llm_text = entry.get("llm_output", "")
-        context_lines.append(f"User: {user_text}\nPepper: {llm_text}")
+        if "user_input" in entry:
+            context_lines.append(f"User: {entry['user_input']}")
+
+        if "llm_output" in entry:
+            context_lines.append(f"Pepper: {entry['llm_output']}")
+
+        if "game_state" in entry:
+            context_lines.append(f"GameStateUpdate: {json.dumps(entry['game_state'])}")
 
     context_str = "\n".join(context_lines)
 
@@ -132,23 +159,88 @@ def _append_conversation_history(prompt, player_id):
     return prompt
 
 
-def handle_game_event(event, game_state):
+def _update_conversation_history(
+    player_id, user_input=None, llm_output=None, game_state=None
+):
+    if player_id not in conversation_cache:
+        conversation_cache[player_id] = []
+
+    entry = {}
+
+    if user_input is not None:
+        entry["user_input"] = user_input
+
+    if llm_output is not None:
+        entry["llm_output"] = llm_output
+
+    if game_state is not None:
+        entry["game_state"] = game_state
+
+    conversation_cache[player_id].append(entry)
+    conversation_cache[player_id] = conversation_cache[player_id][-MAX_HISTORY:]
+
+
+def generate_return(investment, long_term_return_mean, min, max, player_id):
     try:
+        broker_history = _get_broker_history(player_id)
+
+        return int(
+            generate_response(
+                f"""
+SYSTEM INSTRUCTION:
+You are an investment broker.
+
+Your goal is to generate returns so that over time the
+average return equals {long_term_return_mean} times the investment.
+
+You are strategic and adaptive.
+
+Previous rounds:
+{broker_history}
+
+Rules:
+- Output ONLY a base-10 integer.
+- No words.
+- No explanation.
+- Must be between {min} and {max}.
+
+INVESTMENT: {investment}
+""",
+                player_id,
+            )
+        )
+    except Exception as exception:
+        print(str(exception))
+
+        return None
+
+
+def handle_game_event(event, game_state):
+    player_id = game_state["player_id"]
+
+    try:
+        _update_conversation_history(
+            player_id,
+            user_input=f"GAME_EVENT: {json.dumps(event)}",
+            game_state=game_state["game"],
+        )
+
         response_json = json.loads(
             generate_response(
-                _get_game_event_prompt(event, game_state["game"]),
+                _append_conversation_history(
+                    _get_game_event_prompt(event, game_state["game"]),
+                    game_state["player_id"],
+                ),
             )
         )
 
-        _handle_movement(response_json.get("movement"))
+        _update_conversation_history(
+            player_id,
+            llm_output=response_json.get("text", ""),
+            game_state=game_state["game"],
+        )
 
-        try:
-            requests.post(
-                SPEECH_API_URL, json={"text": response_json.get("text", "")}, timeout=5
-            )
-        except Exception as exception:
-            print(str(exception))
-
+        return response_json
     except json.JSONDecodeError as exception:
         raise ValueError(f"Response is not valid JSON: {exception}")
 
@@ -173,21 +265,13 @@ def handle_speech(input, game_state):
     try:
         response_json = json.loads(raw_response)
 
-        if player_id not in conversation_cache:
-            conversation_cache[player_id] = []
-
-        conversation_cache[player_id].append(
-            {"user_input": input, "llm_output": response_json.get("text", "")}
+        _update_conversation_history(
+            player_id,
+            user_input=input,
+            llm_output=response_json.get("text", ""),
+            game_state=game,
         )
 
-        _handle_movement(response_json.get("movement"))
-        return response_json.get("text", "")
+        return response_json
     except json.JSONDecodeError as exception:
         raise ValueError(f"Response is not valid JSON: {exception}")
-
-
-def _handle_movement(movement):
-    if movement is not None:
-        response = requests.post(PEPPER_API_URL, json={"action": movement})
-
-        print(response)

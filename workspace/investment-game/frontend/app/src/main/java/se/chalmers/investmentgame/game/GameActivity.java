@@ -21,6 +21,7 @@ public class GameActivity extends KioskActivity {
     private TextView invested;
     private TextView returned;
     private TextView budget;
+    private TextView round;
     private TextView bank;
 
     @Override
@@ -41,6 +42,7 @@ public class GameActivity extends KioskActivity {
         invested = findViewById(R.id.invested);
         returned = findViewById(R.id.returned);
         budget = findViewById(R.id.budget);
+        round = findViewById(R.id.round);
         bank = findViewById(R.id.bank);
 
         Game game = new Game(startGameResponse, this::update);
@@ -83,6 +85,8 @@ public class GameActivity extends KioskActivity {
                 invested.setText("Invested: " + invVal);
                 returned.setText("Returned: " + retVal);
             }
+
+            round.setText("ROUND " + (game.getRound() + 1));
         }
     }
 
