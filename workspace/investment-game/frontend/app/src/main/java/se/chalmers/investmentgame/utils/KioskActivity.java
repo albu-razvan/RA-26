@@ -7,14 +7,25 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.os.Handler;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 
 public class KioskActivity extends Activity {
     private static final String ACTION_EXIT_KIOSK = "se.chalmers.investmentgame.EXIT_KIOSK";
+    private static final long EXIT_HOLD_DURATION = 10000; // 10 seconds
     private static boolean IS_TASK_IN_LOCK_MODE = false;
 
+    private final Handler handler;
+
     private BroadcastReceiver exitReceiver;
+
+    public KioskActivity() {
+        super();
+
+        this.handler = new Handler();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +44,34 @@ public class KioskActivity extends Activity {
 
         startLockTask();
         hideSystemUI();
+        setupLongPressExit();
+    }
+
+    @SuppressLint("ClickableViewAccessibility")
+    private void setupLongPressExit() {
+        View rootView = getWindow().getDecorView().getRootView();
+        Runnable exitRunnable = () -> {
+            Toast.makeText(KioskActivity.this,
+                    "Exiting kiosk mode...", Toast.LENGTH_SHORT).show();
+            stopLockTask();
+        };
+
+        rootView.setOnTouchListener((view, event) -> {
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    handler.postDelayed(exitRunnable, EXIT_HOLD_DURATION);
+
+                    return true;
+
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    handler.removeCallbacks(exitRunnable);
+
+                    return true;
+            }
+
+            return false;
+        });
     }
 
     @Override

@@ -101,3 +101,5 @@ To exit Kiosk mode, run on a computer connected to ADB:
 ```bash
 adb shell am broadcast -a se.chalmers.investmentgame.EXIT_KIOSK
 ```
+
+You can also long press on the root view of a KioskActivity for 10 seconds to exit Kiosk mode.

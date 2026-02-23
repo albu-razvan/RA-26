@@ -21,19 +21,19 @@ class PepperAnimation:
         self._lock = threading.Lock()
 
         self.actions = {
-            self.POINT: self.fast_point_at_user,
-            self.OPEN_ARM: self.open_arm_in_front,
-            self.WIDE_ARMS: self.wide_open_both_hands,
-            self.OFFER_HANDS: self.slowly_offer_both_hands,
-            self.LEAN: self.question_lean_front,
-            self.APPLAUSE: self.applause,
-            self.GOODBYE: self.goodbye,
-            self.STAND: self.stand_upright,
+            self.POINT: self._wrap(self.fast_point_at_user),
+            self.OPEN_ARM: self._wrap(self.open_arm_in_front),
+            self.WIDE_ARMS: self._wrap(self.wide_open_both_hands),
+            self.OFFER_HANDS: self._wrap(self.slowly_offer_both_hands),
+            self.LEAN: self._wrap(self.question_lean_front),
+            self.APPLAUSE: self._wrap(self.applause),
+            self.GOODBYE: self._wrap(self.goodbye),
+            self.STAND: self._wrap(self.stand_upright),
         }
 
     def _wrap(self, func):
         def wrapper():
-            if not self._lock.acquire(blocking=False):
+            if not self._lock.acquire(False):
                 print("Robot is busy. Skipping animation.")
                 return
 
