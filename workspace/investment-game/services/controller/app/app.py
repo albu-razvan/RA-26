@@ -21,7 +21,19 @@ def api_invest():
 def api_handle_speech():
     try:
         data = request.get_json()
+
         input = data.get("text")
+        state_version = data.get("state_version")
+
+        game_state = game.get_state()
+
+        if game_state["state_version"] != state_version:
+            return (
+                jsonify(
+                    {"error": "Game state version does not match. Event is dropped."}
+                ),
+                409,
+            )
 
         response = interaction.handle_speech(input, game.get_state())
         return jsonify({"text": response})
@@ -31,7 +43,11 @@ def api_handle_speech():
 
 @app.route("/status", methods=["GET"])
 def api_status():
-    return jsonify({"status": "alive"}), 200
+    try:
+        state = game.get_state()
+        return jsonify({"state_version": state.get("state_version", 0)})
+    except Exception as exception:
+        return jsonify({"error": str(exception)}), 500
 
 
 @app.errorhandler(HTTPException)

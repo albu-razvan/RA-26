@@ -2,6 +2,8 @@ package se.chalmers.investmentgame.game;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.Nullable;
@@ -18,8 +20,10 @@ public class GameActivity extends KioskActivity {
     public static final String GAME_INTENT_KEY = "StartGameResponse";
 
     private InvestmentProgressView investmentVisualization;
+    private View investmentOptions;
     private TextView invested;
     private TextView returned;
+    private Button nextRound;
     private TextView budget;
     private TextView round;
     private TextView bank;
@@ -38,9 +42,11 @@ public class GameActivity extends KioskActivity {
         setContentView(R.layout.activity_game);
 
         investmentVisualization = findViewById(R.id.investment_visualization);
+        investmentOptions = findViewById(R.id.investment_options);
         RecyclerView recycler = findViewById(R.id.recycler);
         invested = findViewById(R.id.invested);
         returned = findViewById(R.id.returned);
+        nextRound = findViewById(R.id.next);
         budget = findViewById(R.id.budget);
         round = findViewById(R.id.round);
         bank = findViewById(R.id.bank);
@@ -51,6 +57,13 @@ public class GameActivity extends KioskActivity {
         recycler.setLayoutManager(new LinearLayoutManager(this,
                 LinearLayoutManager.HORIZONTAL, false));
         recycler.setAdapter(new GameRecyclerAdapter(this, game));
+
+        nextRound.setOnClickListener(view -> {
+            investmentOptions.setVisibility(View.VISIBLE);
+            nextRound.setVisibility(View.INVISIBLE);
+
+            round.setText("ROUND " + (game.getRound() + 1));
+        });
     }
 
     private void update(Game game) {
@@ -86,7 +99,15 @@ public class GameActivity extends KioskActivity {
                 returned.setText("Returned: " + retVal);
             }
 
-            round.setText("ROUND " + (game.getRound() + 1));
+            if (game.getRound() == 0) {
+                investmentOptions.setVisibility(View.VISIBLE);
+                nextRound.setVisibility(View.INVISIBLE);
+
+                round.setText("ROUND " + (game.getRound() + 1));
+            } else {
+                investmentOptions.setVisibility(View.INVISIBLE);
+                nextRound.setVisibility(View.VISIBLE);
+            }
         }
     }
 

@@ -180,7 +180,7 @@ def _update_conversation_history(
     conversation_cache[player_id] = conversation_cache[player_id][-MAX_HISTORY:]
 
 
-def generate_return(investment, long_term_return_mean, min, max, player_id):
+def generate_return(investment, min, max, player_id):
     try:
         broker_history = _get_broker_history(player_id)
 
@@ -189,10 +189,6 @@ def generate_return(investment, long_term_return_mean, min, max, player_id):
                 f"""
 SYSTEM INSTRUCTION:
 You are an investment broker.
-
-Your goal is to generate returns so that over time the
-average return equals {long_term_return_mean} times the investment.
-
 You are strategic and adaptive.
 
 Previous rounds:
@@ -205,8 +201,7 @@ Rules:
 - Must be between {min} and {max}.
 
 INVESTMENT: {investment}
-""",
-                player_id,
+"""
             )
         )
     except Exception as exception:

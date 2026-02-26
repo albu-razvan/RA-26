@@ -6,7 +6,9 @@ CHANNELS = 1
 WHISPER_API_URL = "http://whisper:9600/transcribe"
 
 
-def send_to_whisper(audio_bytes, sample_rate, sample_width, success_handler):
+def send_to_whisper(
+    audio_bytes, sample_rate, sample_width, success_handler, state_version
+):
     print("Sending {}s of audio to Whisper...".format(len(audio_bytes) / 32000))
 
     wave_file = None
@@ -30,7 +32,7 @@ def send_to_whisper(audio_bytes, sample_rate, sample_width, success_handler):
 
             if text:
                 print("Recognized: {}".format(text))
-                success_handler(text)
+                success_handler(text, state_version)
         else:
             print("Whisper Error {}".format(res.status_code))
 

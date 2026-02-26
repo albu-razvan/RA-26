@@ -111,14 +111,19 @@ class PepperAudioDuplex(ALModule):
 
     def play_file_gated(self, path):
         with self.state_lock:
+            if self.is_muted:
+                print(
+                    "Robot is already speaking. Dropping received file: {}".format(path)
+                )
+
+                try:
+                    os.remove(path)
+                except:
+                    pass
+                return
+
             self.playback_id += 1
             current_task_id = self.playback_id
-
-        # Stop current speech if any
-        try:
-            self.audio_player.stopAll()
-        except:
-            pass
 
         thread = threading.Thread(
             target=self._playback_worker, args=(path, current_task_id)

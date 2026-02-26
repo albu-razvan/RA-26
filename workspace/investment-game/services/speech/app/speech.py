@@ -3,9 +3,13 @@ import requests
 CONTROLLER_API_URL = "http://controller:8000/handle-speech"
 
 
-def process_speech(speech):
+def process_speech(speech, state_version):
     try:
-        response = requests.post(CONTROLLER_API_URL, json={"text": speech}, timeout=5)
+        response = requests.post(
+            CONTROLLER_API_URL,
+            json={"text": speech, "state_version": state_version},
+            timeout=5,
+        )
         response.raise_for_status()
 
         data = response.json()

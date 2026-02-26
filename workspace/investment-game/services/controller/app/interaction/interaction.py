@@ -40,7 +40,12 @@ def handle_game_event(event, game_state):
 
     try:
         requests.post(
-            SPEECH_API_URL, json={"text": response.get("text", "")}, timeout=5
+            SPEECH_API_URL,
+            json={
+                "text": response.get("text", ""),
+                "state_version": game_state["state_version"],
+            },
+            timeout=5,
         )
     except Exception as exception:
         print(str(exception))

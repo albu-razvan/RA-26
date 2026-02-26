@@ -2,15 +2,19 @@ import numpy as np
 import threading
 import socket
 import collections
+import requests
 import webrtcvad
 import noisereduce as nr
 
+import state
 from whisper import send_to_whisper
 from speech import process_speech
 from pepper import speak
 
 HOST = "0.0.0.0"
 PORT = 9700
+
+CONTROLLER_URL = "http://controller:8000"
 
 SAMPLE_RATE = 16000
 # WebRTC VAD only accepts 10ms, 20ms or 30ms frames
@@ -34,6 +38,8 @@ class AudioProcessor:
         self.cooldown_frames = 0
         self.speech_start_threshold = 3
         self.consecutive_speech = 0
+
+        self.captured_version = 0
 
     def get_rms(self, frame):
         data = np.frombuffer(frame, dtype=np.int16).astype(np.float32)
@@ -71,6 +77,16 @@ class AudioProcessor:
                 if self.consecutive_speech >= self.speech_start_threshold:
                     print(f"[VAD] Voice detected")
 
+                    try:
+                        resp = requests.get(f"{CONTROLLER_URL}/status", timeout=0.5)
+                        self.captured_version = resp.json().get("state_version", 0)
+                    except Exception as exception:
+                        print(f"Error fetching version: {exception}")
+                        self.captured_version = 0
+
+                    state.current_version = self.captured_version
+                    state.is_user_talking = True
+
                     self.triggered = True
                     self.voiced_frames.extend(self.ring_buffer)
                     self.ring_buffer.clear()
@@ -86,6 +102,7 @@ class AudioProcessor:
                 if self.silence_counter > self.SILENCE_LIMIT:
                     print("[VAD] Processing audio chunk...")
 
+                    state.is_user_talking = False
                     self.triggered = False
                     self.silence_counter = 0
 
@@ -95,7 +112,7 @@ class AudioProcessor:
                     if len(full_audio) < 8000:
                         return None
 
-                    return self.clean_audio(full_audio)
+                    return self.clean_audio(full_audio), self.captured_version
 
         return None
 
@@ -111,13 +128,13 @@ class AudioProcessor:
             )
 
             return reduced_noise.tobytes()
-        except Exception as e:
-            print("Noise reduction failed:", e)
+        except Exception as exception:
+            print("Noise reduction failed:", exception)
             return audio_bytes
 
 
-def success_handler(text):
-    response = process_speech(text)
+def success_handler(text, state_version):
+    response = process_speech(text, state_version)
 
     if response is not None:
         speak(response)
@@ -145,8 +162,10 @@ def start_sock_server():
                     if not data:
                         break
 
-                    sentence = processor.process_stream(data)
-                    if sentence:
+                    result = processor.process_stream(data)
+                    if result:
+                        sentence, version = result
+
                         threading.Thread(
                             target=send_to_whisper,
                             args=(
@@ -154,10 +173,11 @@ def start_sock_server():
                                 SAMPLE_RATE,
                                 2,  # Sample width
                                 success_handler,
+                                version,
                             ),
                         ).start()
-            except Exception as e:
-                print(f"Connection error: {e}")
+            except Exception as exception:
+                print(f"Connection error: {exception}")
             finally:
                 connection.close()
                 print("Lost connection, waiting...")
