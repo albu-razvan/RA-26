@@ -17,16 +17,16 @@ PEPPER_USER="nao"
 PEPPER_HOST="pepper.local"
 PEPPER_PATH="/home/nao"
 
-LOCAL_SCRIPT="$SCRIPT_DIR/audio_handler.py"
+LOCAL_SCRIPT="$SCRIPT_DIR/robot_handler.py"
 
-echo "Copying audio player script..."
+echo "Copying Pepper's handler script..."
 sshpass -p "$PEPPER_PASS" scp "$LOCAL_SCRIPT" "$PEPPER_USER@$PEPPER_HOST:$PEPPER_PATH"
 
-echo "Starting audio player on Pepper..."
+echo "Starting handler on Pepper..."
 sshpass -p "$PEPPER_PASS" ssh "$PEPPER_USER@$PEPPER_HOST" << EOF
-pkill -f audio_handler.py 2>/dev/null
+pkill -f robot_handler.py 2>/dev/null
 
 export REMOTE_REC_IP="$COMPUTER_IP"
 
-nohup python2.7 $PEPPER_PATH/audio_handler.py > $PEPPER_PATH/audio_handler.log 2>&1 &
+nohup python2.7 -u $PEPPER_PATH/robot_handler.py > $PEPPER_PATH/robot_handler.log 2>&1 &
 EOF

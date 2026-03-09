@@ -10,9 +10,9 @@ PEPPER_USER="nao"
 PEPPER_HOST="pepper.local"
 PEPPER_PATH="/home/nao"
 
-SCRIPT_NAME="audio_handler.py"
+SCRIPT_NAME="robot_handler.py"
 
-echo "Stopping Pepper's audio player..."
+echo "Stopping Pepper's handler..."
 sshpass -p "$PEPPER_PASS" ssh "$PEPPER_USER@$PEPPER_HOST" << EOF
 pkill -f $SCRIPT_NAME 2>/dev/null || true
 
