@@ -8,7 +8,7 @@ def process_speech(speech, state_version):
         response = requests.post(
             CONTROLLER_API_URL,
             json={"text": speech, "state_version": state_version},
-            timeout=5,
+            timeout=10,
         )
         response.raise_for_status()
 

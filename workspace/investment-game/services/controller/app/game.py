@@ -113,7 +113,7 @@ def start_game():
 
 
 def _delayed_reaction(event, state):
-    time.sleep(2.0)
+    time.sleep(5.0)
 
     handle_game_event(event, state)
 
