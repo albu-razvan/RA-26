@@ -15,7 +15,8 @@ REMOTE_REC_PORT = 9700
 FILE_IN_HOST = ""
 FILE_IN_PORT = 6000
 
-EYE_ANIM_INTERVAL = 0.1
+EYE_GROUP = "FaceLeds"
+PULSE_DURATION = 0.5
 
 
 # Generated with Gemini 3 Pro with minor tweaks
@@ -34,14 +35,16 @@ class PepperAudioDuplex(ALModule):
         # Proxies
         self.audio_device = ALProxy("ALAudioDevice")
         self.audio_player = ALProxy("ALAudioPlayer")
+        self.memory = ALProxy("ALMemory")
         self.leds = ALProxy("ALLeds")
 
+        # Audio
         self.audio_device.setOutputVolume(70)
         self.attempt_connect()
 
-        # Eye Animation Thread
+        # Eye Animation
+        self.memory.subscribeToEvent("GlobalEyeState", self.getName(), "on_eye_state")
         self.eye_anim_running = True
-        self.local_rms = 0  # Used only for visuals
         thread = threading.Thread(target=self._eye_animation_loop)
         thread.setDaemon(True)
         thread.start()
@@ -73,12 +76,7 @@ class PepperAudioDuplex(ALModule):
             return
 
         try:
-            # We calculate RMS purely for the eye LEDs, not for gating audio.
-            # This ensures the robot looks "alive" without affecting the stream.
-            audio_data = np.frombuffer(inputBuffer, dtype=np.int16)
-            rms = np.sqrt(np.mean(audio_data.astype(np.float32) ** 2))
             with self.state_lock:
-                self.local_rms = rms
                 i_am_speaking = self.is_muted
 
             if i_am_speaking:
@@ -131,26 +129,58 @@ class PepperAudioDuplex(ALModule):
         thread.daemon = True
         thread.start()
 
+    def on_eye_state(self, key, value, message):
+        print("Eye state event:" + value)
+        self.current_eye_state = value
+
     def _eye_animation_loop(self):
-        """
-        Visual feedback only.
-        Pulses blue when hearing loud sounds, otherwise white.
-        """
-        eye_group = "FaceLeds"
         while self.eye_anim_running:
             with self.state_lock:
-                current_rms = getattr(self, "local_rms", 0)
                 is_speaking = getattr(self, "is_muted", False)
+                global_state = getattr(self, "current_eye_state", "idle")
 
-            # Visual threshold for "hearing something"
-            if current_rms > 500 and not is_speaking:
-                # Listening color (Blue-ish)
-                self.leds.post.fadeRGB(eye_group, 0.0, 0.0, 1.0, 0.1)
+            if is_speaking:
+                effective_state = "speaking"
+            elif global_state in ["listening", "processing"]:
+                effective_state = global_state
             else:
-                # Idle color (White)
-                self.leds.post.fadeRGB(eye_group, 1.0, 1.0, 1.0, 0.2)
+                effective_state = "idle"
 
-            time.sleep(EYE_ANIM_INTERVAL)
+            if effective_state == "speaking":
+                if self.pulse_state == 0:
+                    self.leds.post.fadeRGB(EYE_GROUP, 0.0, 1.0, 0.0, PULSE_DURATION)
+                    self.pulse_state = 1
+                else:
+                    self.leds.post.fadeRGB(EYE_GROUP, 0.0, 0.2, 0.0, PULSE_DURATION)
+                    self.pulse_state = 0
+
+                time.sleep(PULSE_DURATION)
+
+            elif effective_state == "listening":
+                if self.pulse_state == 0:
+                    self.leds.post.fadeRGB(EYE_GROUP, 0.0, 0.0, 1.0, PULSE_DURATION)
+                    self.pulse_state = 1
+                else:
+                    self.leds.post.fadeRGB(EYE_GROUP, 0.0, 0.0, 0.2, PULSE_DURATION)
+                    self.pulse_state = 0
+
+                time.sleep(PULSE_DURATION)
+
+            elif effective_state == "processing":
+                if self.pulse_state == 0:
+                    self.leds.post.fadeRGB(EYE_GROUP, 1.0, 0.5, 0.0, PULSE_DURATION)
+                    self.pulse_state = 1
+                else:
+                    self.leds.post.fadeRGB(EYE_GROUP, 0.2, 0.1, 0.0, PULSE_DURATION)
+                    self.pulse_state = 0
+
+                time.sleep(PULSE_DURATION)
+
+            else:
+                self.leds.post.fadeRGB(EYE_GROUP, 1.0, 1.0, 1.0, 0.2)
+                self.pulse_state = 0
+
+                time.sleep(0.5)
 
     def stop(self):
         try:

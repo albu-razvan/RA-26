@@ -3,21 +3,32 @@ import requests
 from . import llm
 from . import algorithmic
 
+from typing import Literal
 from logger import log_conversation
 
 SPEECH_API_URL = "http://speech:9701/speak"
-PEPPER_API_URL = "http://pepper:8080/animate"
+PEPPER_ANIMATE_URL = "http://pepper:8080/animate"
+PEPPER_STATE_URL = "http://pepper:8080/set-state"
+
+
+def _set_pepper_state(state: Literal["processing", "idle"]):
+    try:
+        requests.post(PEPPER_STATE_URL, json={"state": state}, timeout=1)
+    except Exception:
+        pass
 
 
 def _handle_movement(movement):
     if movement is not None:
         try:
-            requests.post(PEPPER_API_URL, json={"action": movement})
+            requests.post(PEPPER_ANIMATE_URL, json={"action": movement})
         except Exception as exception:
             print(str(exception))
 
 
 def handle_speech(input_text, game_state):
+    _set_pepper_state("processing")
+
     player_id = game_state.get("player_id")
     condition = game_state.get("condition", "LLM")
 
@@ -37,10 +48,13 @@ def handle_speech(input_text, game_state):
 
     _handle_movement(response["movement"])
 
+    _set_pepper_state("idle")
     return response["text"]
 
 
 def handle_game_event(event, game_state):
+    _set_pepper_state("processing")
+
     player_id = game_state.get("player_id")
     condition = game_state.get("condition", "LLM")
 
@@ -71,3 +85,5 @@ def handle_game_event(event, game_state):
         )
     except Exception as exception:
         print(str(exception))
+
+    _set_pepper_state("idle")

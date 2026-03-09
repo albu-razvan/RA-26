@@ -15,6 +15,7 @@ HOST = "0.0.0.0"
 PORT = 9700
 
 CONTROLLER_URL = "http://controller:8000"
+PEPPER_HANDLER_URL = "http://pepper:8080"
 
 SAMPLE_RATE = 16000
 # WebRTC VAD only accepts 10ms, 20ms or 30ms frames
@@ -87,6 +88,15 @@ class AudioProcessor:
                     state.current_version = self.captured_version
                     state.is_user_talking = True
 
+                    try:
+                        requests.post(
+                            f"{PEPPER_HANDLER_URL}/set-state",
+                            json={"state": "listening"},
+                            timeout=1,
+                        )
+                    except Exception as exception:
+                        print(f"Error changing state: {exception}")
+
                     self.triggered = True
                     self.voiced_frames.extend(self.ring_buffer)
                     self.ring_buffer.clear()
@@ -103,6 +113,16 @@ class AudioProcessor:
                     print("[VAD] Processing audio chunk...")
 
                     state.is_user_talking = False
+
+                    try:
+                        requests.post(
+                            f"{PEPPER_HANDLER_URL}/set-state",
+                            json={"state": "processing"},
+                            timeout=1,
+                        )
+                    except Exception as exception:
+                        print(f"Error changing state: {exception}")
+
                     self.triggered = False
                     self.silence_counter = 0
 
