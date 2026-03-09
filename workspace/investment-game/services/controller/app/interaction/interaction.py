@@ -3,6 +3,8 @@ import requests
 from . import llm
 from . import algorithmic
 
+from logger import log_conversation
+
 SPEECH_API_URL = "http://speech:9701/speak"
 PEPPER_API_URL = "http://pepper:8080/animate"
 
@@ -16,12 +18,22 @@ def _handle_movement(movement):
 
 
 def handle_speech(input_text, game_state):
+    player_id = game_state.get("player_id")
     condition = game_state.get("condition", "LLM")
+
+    log_conversation(player_id, "Human (Speech)", text=input_text)
 
     if condition == "LLM":
         response = llm.handle_speech(input_text, game_state)
     else:
         response = algorithmic.handle_speech(input_text)
+
+    log_conversation(
+        player_id,
+        f"Pepper (${condition})",
+        text=response.get("text"),
+        movement=response.get("movement"),
+    )
 
     _handle_movement(response["movement"])
 
@@ -29,12 +41,22 @@ def handle_speech(input_text, game_state):
 
 
 def handle_game_event(event, game_state):
+    player_id = game_state.get("player_id")
     condition = game_state.get("condition", "LLM")
+
+    log_conversation(player_id, "Game Event", text=str(event))
 
     if condition == "LLM":
         response = llm.handle_game_event(event, game_state)
     else:
         response = algorithmic.handle_game_event(event, game_state)
+
+    log_conversation(
+        player_id,
+        f"Pepper (${condition})",
+        text=response.get("text"),
+        movement=response.get("movement"),
+    )
 
     _handle_movement(response["movement"])
 
