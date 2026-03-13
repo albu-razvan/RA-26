@@ -1,0 +1,3 @@
+- [ ] Improve speech processing and TTS responsiveness
+- [ ] Separate the conditions more clearly
+- [ ] Add a way to potentially select wether an experiment participant will be assigned to trustworthy/untrustworthy or LLM/Algorithmic

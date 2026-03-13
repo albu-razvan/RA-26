@@ -33,9 +33,9 @@ class AudioProcessor:
         self.ring_buffer = collections.deque(maxlen=20)
 
         self.silence_counter = 0
-        self.SILENCE_LIMIT = 50  # ~1s of silence to end a sentence
+        self.SILENCE_LIMIT = 75  # ~1.5s of silence to end a sentence
 
-        self.RMS_THRESHOLD = 500
+        self.RMS_THRESHOLD = 420
         self.cooldown_frames = 0
         self.speech_start_threshold = 3
         self.consecutive_speech = 0
@@ -157,7 +157,15 @@ def success_handler(text, state_version):
     response = process_speech(text, state_version)
 
     if response is not None:
-        speak(response)
+        try:
+            status_response = requests.get(f"{CONTROLLER_URL}/status", timeout=1)
+            if status_response.json().get("state_version", 0) != state_version:
+                print("Game state changed while generating speech. Dropping response.")
+                return
+        except Exception as exception:
+            print(f"Status check failed: {exception}")
+
+        speak(response, version=state_version)
 
 
 def start_sock_server():

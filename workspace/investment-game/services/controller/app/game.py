@@ -16,13 +16,13 @@ _state_version = 0
 _condition = random.choice(["LLM", "Algorithmic"])
 
 ROUND_BUDGET = 10
-MAX_ROUNDS = 20
+MAX_ROUNDS = 3
 
-TRUSTWORTHY_MIN_MULTIPLIER = 1.1
-TRUSTWORTHY_MAX_MULTIPLIER = 1.8
+TRUSTWORTHY_MIN_MULTIPLIER = 1.2
+TRUSTWORTHY_MAX_MULTIPLIER = 2.4
 
 UNTRUSTWORTHY_MIN_MULTIPLIER = 0.2
-UNTRUSTWORTHY_MAX_MULTIPLIER = 1
+UNTRUSTWORTHY_MAX_MULTIPLIER = 0.8
 
 STD_DEV = 0.4
 
@@ -32,6 +32,8 @@ def _generate_return(investment, robot_type, condition):
 
     if investment == 0:
         return 0
+
+    robot_funds = investment * 3
 
     if robot_type == "trustworthy":
         min_multiplier = TRUSTWORTHY_MIN_MULTIPLIER
@@ -46,6 +48,7 @@ def _generate_return(investment, robot_type, condition):
     if condition == "LLM":
         returned = generate_return(
             investment=investment,
+            robot_funds=robot_funds,
             min=min_return,
             max=max_return,
             player_id=_player_id,
@@ -59,7 +62,7 @@ def _generate_return(investment, robot_type, condition):
     return (
         returned,
         int(round(min_multiplier * ROUND_BUDGET)),
-        int(round(min_multiplier * ROUND_BUDGET)),
+        int(round(max_multiplier * ROUND_BUDGET)),
     )
 
 

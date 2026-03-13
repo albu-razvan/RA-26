@@ -17,4 +17,4 @@ def generate_response(prompt: str) -> str:
     except Exception as exception:
         print(f"Exception in LLM request: {str(exception)}")
 
-        return None
+        return """{"text": "Oh! My circuits got a little tangled for a second there. I'm so sorry! Let's try that again on my tablet.", "movement": "lean"}"""

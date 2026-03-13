@@ -67,47 +67,51 @@ public class GameActivity extends KioskActivity {
     }
 
     private void update(Game game) {
-        if (game.getRoundsRemaining() <= 0) {
-            Intent intent = new Intent(this, GameOverActivity.class);
-            intent.putExtra(GameOverActivity.BANK_INTENT_KEY, game.getBank());
+        bank.animate().scaleX(1.2f)
+                .scaleY(1.2f)
+                .setDuration(100)
+                .withEndAction(() -> {
+                    bank.setText(String.valueOf(game.getBank()));
+                    bank.animate()
+                            .scaleX(1.0f)
+                            .scaleY(1.0f)
+                            .setDuration(300);
+                });
 
-            startActivity(intent);
-            finishAfterTransition();
+        budget.setText(String.valueOf(game.getRoundBudget()));
+        int invVal = game.getInvested();
+        int retVal = game.getReturned();
+
+        if (invVal == -1 || retVal == -1) {
+            investmentVisualization.setCurrentProgress(0f);
+            returned.setText("");
+            invested.setText("");
         } else {
-            bank.animate().scaleX(1.2f)
-                    .scaleY(1.2f)
-                    .setDuration(100)
-                    .withEndAction(() -> {
-                        bank.setText(String.valueOf(game.getBank()));
-                        bank.animate()
-                                .scaleX(1.0f)
-                                .scaleY(1.0f)
-                                .setDuration(300);
-                    });
+            investmentVisualization.setCurrentProgress(getProgress(game, invVal, retVal));
+            invested.setText("Invested: " + invVal);
+            returned.setText("Returned: " + retVal);
+        }
 
-            budget.setText(String.valueOf(game.getRoundBudget()));
-            int invVal = game.getInvested();
-            int retVal = game.getReturned();
+        if (game.getRound() == 0) {
+            investmentOptions.setVisibility(View.VISIBLE);
+            nextRound.setVisibility(View.INVISIBLE);
 
-            if (invVal == -1 || retVal == -1) {
-                investmentVisualization.setCurrentProgress(0f);
-                returned.setText("");
-                invested.setText("");
-            } else {
-                investmentVisualization.setCurrentProgress(getProgress(game, invVal, retVal));
-                invested.setText("Invested: " + invVal);
-                returned.setText("Returned: " + retVal);
+            round.setText("ROUND " + (game.getRound() + 1));
+        } else {
+            investmentOptions.setVisibility(View.INVISIBLE);
+
+            if (game.getRoundsRemaining() <= 0) {
+                nextRound.setText("End Game");
+                nextRound.setOnClickListener(view -> {
+                    Intent intent = new Intent(GameActivity.this, GameOverActivity.class);
+                    intent.putExtra(GameOverActivity.BANK_INTENT_KEY, game.getBank());
+
+                    startActivity(intent);
+                    finishAfterTransition();
+                });
             }
 
-            if (game.getRound() == 0) {
-                investmentOptions.setVisibility(View.VISIBLE);
-                nextRound.setVisibility(View.INVISIBLE);
-
-                round.setText("ROUND " + (game.getRound() + 1));
-            } else {
-                investmentOptions.setVisibility(View.INVISIBLE);
-                nextRound.setVisibility(View.VISIBLE);
-            }
+            nextRound.setVisibility(View.VISIBLE);
         }
     }
 

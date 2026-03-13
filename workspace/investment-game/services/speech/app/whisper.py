@@ -36,6 +36,16 @@ def send_to_whisper(
         else:
             print("Whisper Error {}".format(res.status_code))
 
+    except requests.exceptions.ConnectionError:
+        print("Whisper not available yet, waiting...")
+
+        success_handler(
+            """SYSTEM NOTE: The Whisper model did not finish loading. 
+Reply with a wake up message similar to (with some variation, make it playfull): 
+\"Oh, it appears I am not quite able to understand what you are saying, give me some time to make sure everything is up and running!\"""",
+            state_version,
+        )
+
     except Exception as exception:
         print("Whisper request failed: {}".format(exception))
     finally:
