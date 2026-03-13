@@ -18,3 +18,7 @@ This document contains a list of notable changes affecting the Pepper robot with
 ### Tue, Jan 20
 
 - Initial Investment Game implementation (server + native Android app) ([#3](https://github.com/albu-razvan/RA-26/issues/3))
+
+### Mon, Mar 9
+
+- Investment Game MVP ([#13](https://github.com/albu-razvan/RA-26/issues/13))
