@@ -15,6 +15,13 @@ Use the provided script to start all services:
 ```bash
 export PEPPER_PASS="your_pepper_ssh_password"
 export GEMINI_API_KEY="your_gemini_api_key"
+
+# get HF_TOKEN from https://hf.co/settings/tokens
+# after accepting conditions at
+# https://huggingface.co/pyannote/overlapped-speech-detection
+# and https://huggingface.co/pyannote/segmentation
+export HF_TOKEN="your_huggingface_token"
+
 export ROBOT_IP=192.168.0.100 # make sure this is Pepper's IP address
 export COMPUTER_IP=192.168.0.XXX # the computer running Docker Compose IP address
 

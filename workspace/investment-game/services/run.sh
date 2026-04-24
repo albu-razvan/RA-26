@@ -6,6 +6,11 @@ if [[ -z "${GEMINI_API_KEY:-}" ]]; then
     exit 1
 fi
 
+if [[ -z "${HF_TOKEN:-}" ]]; then
+    echo "Error: HF_TOKEN is not set. Please export HF_TOKEN first."
+    exit 1
+fi
+
 if [[ -z "${ROBOT_IP:-}" ]]; then
     echo "Error: ROBOT_IP is not set. Please export ROBOT_IP first."
     exit 1

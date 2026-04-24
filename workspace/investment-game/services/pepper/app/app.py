@@ -8,6 +8,8 @@ from naoqi import ALProxy
 ALLOWED_STATES = ["idle", "listening", "processing", "speaking"]
 ROBOT_IP = os.environ.get("ROBOT_IP", "192.168.0.100")
 PORT = 9559
+ROBOT_HANDLER_HOST = "127.0.0.1"
+ROBOT_HANDLER_CTRL_PORT = 9703
 
 
 @route("/animate", method="POST")
@@ -47,6 +49,17 @@ def handle_state():
         memory.raiseEvent("GlobalEyeState", state)
 
         return {"status": "success", "state": data["state"]}
+    except Exception as exception:
+        response.status = 500
+        return {"error": str(exception)}
+
+
+@route("/interrupt", method="POST")
+def handle_interrupt():
+    try:
+        audio_player = ALProxy("ALAudioPlayer", ROBOT_IP, PORT)
+        audio_player.stopAll()
+        return {"status": "interrupted"}
     except Exception as exception:
         response.status = 500
         return {"error": str(exception)}

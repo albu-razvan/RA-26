@@ -13,7 +13,8 @@ from flask import jsonify
 _game = None
 _player_id = str(ulid.new())
 _state_version = 0
-_condition = random.choice(["LLM", "Algorithmic"])
+# _condition = random.choice(["LLM", "Algorithmic"])
+_condition = "LLM"
 
 ROUND_BUDGET = 10
 MAX_ROUNDS = 3
