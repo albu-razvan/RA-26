@@ -39,7 +39,7 @@ class PepperAudioDuplex(ALModule):
         self.leds = ALProxy("ALLeds")
 
         # Audio
-        self.audio_device.setOutputVolume(70)
+        self.audio_device.setOutputVolume(50)
         self.attempt_connect()
 
         # Eye Animation

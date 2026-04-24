@@ -7,7 +7,7 @@ import webrtcvad
 import noisereduce as nr
 
 import state
-from whisper import send_to_whisper
+from parakeet import send_to_parakeet
 from speech import process_speech
 from pepper import speak
 
@@ -33,7 +33,7 @@ class AudioProcessor:
         self.ring_buffer = collections.deque(maxlen=20)
 
         self.silence_counter = 0
-        self.SILENCE_LIMIT = 75  # ~1.5s of silence to end a sentence
+        self.SILENCE_LIMIT = 50  # ~1s of silence to end a sentence
 
         self.RMS_THRESHOLD = 420
         self.cooldown_frames = 0
@@ -79,7 +79,7 @@ class AudioProcessor:
                     print(f"[VAD] Voice detected")
 
                     try:
-                        resp = requests.get(f"{CONTROLLER_URL}/status", timeout=0.5)
+                        resp = requests.get(f"{CONTROLLER_URL}/status", timeout=0.2)
                         self.captured_version = resp.json().get("state_version", 0)
                     except Exception as exception:
                         print(f"Error fetching version: {exception}")
@@ -195,7 +195,7 @@ def start_sock_server():
                         sentence, version = result
 
                         threading.Thread(
-                            target=send_to_whisper,
+                            target=send_to_parakeet,
                             args=(
                                 sentence,
                                 SAMPLE_RATE,

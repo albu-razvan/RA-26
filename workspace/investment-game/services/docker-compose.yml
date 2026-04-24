@@ -6,6 +6,8 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "8000:8000"
+    depends_on:
+      - parakeet
     volumes:
       - ./controller/observations/:/observations
       - ./controller/app/:/app:ro
@@ -19,32 +21,39 @@ services:
       - "9559:9559"
       - "9700:9700" # sockets
       - "9701:9701" # http
+    depends_on:
+      - parakeet
     volumes:
       - ./speech/app/:/app:ro
 
-  whisper:
-    build: ./whisper
-    container_name: whisper
+  parakeet:
+    build: ./parakeet
+    container_name: parakeet
     volumes:
-      - ./whisper/app.py/:/app/app.py:ro
+      - ./parakeet/app.py:/app/app.py:ro
+      - parakeet_cache:/root/.cache/huggingface/hub
 
   pepper:
     build: ./pepper
     container_name: naoqi
     environment:
       - ROBOT_IP=${ROBOT_IP}
+    depends_on:
+      - parakeet
     volumes:
       - ./pepper/app/:/app:ro
 
-  # default voices: https://rhasspy.github.io/piper-samples
   tts:
     build: ./piper
     container_name: piper
     command: >
-      --m /models/cori/model
+      --m /models/cortana/model
       --length-scale 1.1
       --noise-scale 0.8
       --noise-w-scale 0.7
       --host 0.0.0.0
     volumes:
       - ./piper/models:/models
+
+volumes:
+  parakeet_cache:

@@ -1,6 +1,0 @@
-faster-whisper
-fastapi
-uvicorn
-numpy
-soundfile
-python-multipart
