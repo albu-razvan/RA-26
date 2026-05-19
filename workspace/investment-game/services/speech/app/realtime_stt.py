@@ -17,7 +17,7 @@ class RealtimeSpeechTranscriber:
         self.recorder = AudioToTextRecorder(
             use_microphone=False,
             device="cpu",
-            model=os.environ.get("STT_MODEL", "tiny.en"),
+            model=os.environ.get("STT_MODEL", "base.en"),
             language="en",
             spinner=False,
             no_log_file=True,

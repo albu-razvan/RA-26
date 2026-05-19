@@ -31,25 +31,25 @@ FRAME_DURATION_MS = 20
 FRAME_SIZE_BYTES = int(16000 * 0.02 * 2 * 1)  # 1 channel
 
 # Overlapped-speech detection
-OSD_WINDOW_MS = 700
-OSD_CHECK_INTERVAL_MS = 80
+OSD_WINDOW_MS = 1000  # Audio window passed to OSD model; larger is steadier, smaller is faster
+OSD_CHECK_INTERVAL_MS = 100  # How often to run OSD checks while robot speaks
 OSD_WINDOW_FRAMES = OSD_WINDOW_MS // FRAME_DURATION_MS
 OSD_CHECK_INTERVAL_FRAMES = OSD_CHECK_INTERVAL_MS // FRAME_DURATION_MS
-OSD_MIN_AUDIO_MS = 200
+OSD_MIN_AUDIO_MS = 100  # Minimum buffered mic audio before running OSD (avoid tiny/noisy checks)
 OSD_MIN_AUDIO_SAMPLES = int((OSD_MIN_AUDIO_MS / 1000.0) * SAMPLE_RATE)
-OSD_RESIDUAL_BOOST = 4.5
-OSD_MAX_GAIN = 60.0
-OSD_TEMPLATE_LAG_STEP_MS = 20
-OSD_USE_DENOISE = False
-OVERLAP_CHECK_WINDOW_MS = 600
-OVERLAP_CHECK_INTERVAL_MS = 60
+OSD_RESIDUAL_BOOST = 4.5  # Boost factor for residual energy in OSD overlap scoring
+OSD_MAX_GAIN = 60.0  # Upper cap for residual amplification in OSD path.
+OSD_TEMPLATE_LAG_STEP_MS = 20  # Step size when scanning lag offsets for robot-template alignment
+OSD_USE_DENOISE = True  # If True, denoise mic audio before OSD (more CPU, can reduce false hits)
+OVERLAP_CHECK_WINDOW_MS = 600  # Fast overlap detector mic window (template-matching path)
+OVERLAP_CHECK_INTERVAL_MS = 60  # How often fast overlap checks run during robot speech.
 OVERLAP_CHECK_WINDOW_FRAMES = OVERLAP_CHECK_WINDOW_MS // FRAME_DURATION_MS
 OVERLAP_CHECK_INTERVAL_FRAMES = OVERLAP_CHECK_INTERVAL_MS // FRAME_DURATION_MS
-OVERLAP_MIN_ABS_RESIDUAL_RATIO = 0.09
-OVERLAP_LAG_OFFSETS_MS = 350  # +/- range around expected alignment
-OVERLAP_BASELINE_DELTA = 0.02
-OVERLAP_BASELINE_HISTORY_MIN = 2
-OVERLAP_CHECK_AFTER_ROBOT_START_S = 0.1
+OVERLAP_MIN_ABS_RESIDUAL_RATIO = 0.09  # Absolute residual floor before considering user overlap
+OVERLAP_LAG_OFFSETS_MS = 350  # +/- lag search range around expected robot playback alignment
+OVERLAP_BASELINE_DELTA = 0.02  # Required jump above recent robot-only baseline to trigger barge-in
+OVERLAP_BASELINE_HISTORY_MIN = 2  # Minimum robot-only history windows before baseline-based triggering
+OVERLAP_CHECK_AFTER_ROBOT_START_S = 0.1  # Delay checks briefly after TTS start to avoid startup transients
 
 
 class AudioProcessor:
@@ -64,7 +64,7 @@ class AudioProcessor:
         self.ring_buffer = collections.deque(maxlen=20)
 
         self.silence_counter = 0
-        self.SILENCE_LIMIT = int(os.environ.get("SILENCE_LIMIT_FRAMES", "30"))
+        self.SILENCE_LIMIT = int(os.environ.get("SILENCE_LIMIT_FRAMES", "70"))
 
         self.RMS_THRESHOLD = 500
         self.cooldown_frames = 0
