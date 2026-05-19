@@ -13,21 +13,28 @@ This directory contains all the services required to perform an investment game 
 Use the provided script to start all services:
 
 ```bash
-export PEPPER_PASS="your_pepper_ssh_password"
-export GEMINI_API_KEY="your_gemini_api_key"
-
-# get HF_TOKEN from https://hf.co/settings/tokens
-# after accepting conditions at
-# https://huggingface.co/pyannote/overlapped-speech-detection
-# and https://huggingface.co/pyannote/segmentation
-export HF_TOKEN="your_huggingface_token"
-
-export ROBOT_IP=192.168.0.100 # make sure this is Pepper's IP address
-export COMPUTER_IP=192.168.0.XXX # the computer running Docker Compose IP address
+cp .env.example .env
+# edit .env and set your real values
 
 chmod +x run.sh
 ./run.sh
 ```
+
+Required `.env` values are:
+
+- `PEPPER_PASS`
+- `AZURE_OPENAI_ENDPOINT`
+- `AZURE_OPENAI_API_KEY`
+- `AZURE_OPENAI_DEPLOYMENT` (for example `gpt-5.4-nano`)
+- `HF_TOKEN`
+- `ROBOT_IP`
+- `COMPUTER_IP`
+
+Optional `.env` values:
+
+- `AZURE_OPENAI_API_VERSION` (defaults to `2025-03-01-preview` in code)
+- `STT_MODEL` (defaults to `base.en`)
+- `SILENCE_LIMIT_FRAMES` (defaults to `70`)
 
 This will:
 

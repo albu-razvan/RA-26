@@ -1,7 +1,7 @@
 import json
 import random
 
-from gemini import generate_response
+from azure_openai import generate_response
 
 PREDEFINED_RESPONSES = {
     "GAME_STARTED": [

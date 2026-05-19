@@ -1,3 +1,4 @@
 flask
 ulid-py
-google-genai
+requests
+openai

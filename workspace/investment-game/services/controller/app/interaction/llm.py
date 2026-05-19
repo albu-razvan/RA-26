@@ -1,6 +1,6 @@
 import json
 
-from gemini import generate_response
+from azure_openai import generate_response
 
 conversation_cache = {}
 MAX_HISTORY = 20
