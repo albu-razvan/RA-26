@@ -16,6 +16,7 @@ class OSDDetector:
         max_gain,
         lag_step_ms,
         use_denoise,
+        min_overlap_total_s,
     ):
         self.sample_rate = sample_rate
         self.lag_offsets_ms = lag_offsets_ms
@@ -23,6 +24,7 @@ class OSDDetector:
         self.max_gain = max_gain
         self.lag_step_ms = lag_step_ms
         self.use_denoise = use_denoise
+        self.min_overlap_total_s = min_overlap_total_s
         self.pipeline = Pipeline.from_pretrained(
             "pyannote/overlapped-speech-detection",
             use_auth_token=hf_token,
@@ -84,13 +86,11 @@ class OSDDetector:
             osd = self.pipeline({"waveform": waveform, "sample_rate": self.sample_rate})
             segments = list(osd.get_timeline().support())
 
+            total = sum(max(0.0, seg.end - seg.start) for seg in segments)
             if segments:
-                total = sum(max(0.0, seg.end - seg.start) for seg in segments)
                 print(f"[OSD] overlap segments={len(segments)} total={total:.3f}s")
-            else:
-                print("[OSD] overlap segments=0")
 
-            return len(segments) > 0
+            return total >= self.min_overlap_total_s
         except Exception as e:
             print(f"[OSD] Detection failed: {e}")
             return False

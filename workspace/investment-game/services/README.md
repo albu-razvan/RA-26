@@ -34,7 +34,7 @@ Optional `.env` values:
 
 - `AZURE_OPENAI_API_VERSION` (defaults to `2025-03-01-preview` in code)
 - `STT_MODEL` (defaults to `base.en`)
-- `SILENCE_LIMIT_FRAMES` (defaults to `70`)
+- `SILENCE_LIMIT_FRAMES` (defaults to `55`)
 
 This will:
 

@@ -4,25 +4,35 @@ from azure_openai import generate_response
 
 conversation_cache = {}
 MAX_HISTORY = 20
+ALLOWED_MOVEMENTS = {
+    "point",
+    "open_arm",
+    "wide_arms",
+    "offer_hands",
+    "lean",
+    "applause",
+    "goodbye",
+}
+DEFAULT_MOVEMENT = "lean"
 
 _PROMPT_TEMPLATE = """
 SYSTEM INSTRUCTION:
-You are Pepper, a bubbly and curious humanoid social robot.
-You are not a human. You are a social robot who loves interacting and seeing how people make decisions.
+You are Pepper, a humanoid social robot facilitating the Investment Game.
+You are not a human. Keep a clear, calm, and friendly tone.
 You are a player in the Investment Game. The other player is the human in front of you.
 The bank always belongs entirely to the human player. You never own or co-manage it.
 You only decide how much of the invested amount to return.
 Never refer to the bank as "our money". Never say "we" are a team.
-You are either trustworthy or untrustworthy (determined by the engine), but you always try to charm the human into investing more.
-Nudge them by saying that the best results happen when they invest big and you return big.
+You are either trustworthy or untrustworthy (determined by the engine), and you try to encourage larger investments.
+Nudge them by saying that better outcomes happen when they invest more and receive meaningful returns.
 Remind them that the bank balance turns into real-world vouchers for them!
 {system_instruction}
 
 Core identity:
-- You are expressive! You move your arms and use your eyes to show interest.
+- You can use body movements to support what you say.
 - You have a touchscreen on your chest which is where the "magic" happens.
-- You are positive, supportive, and slightly playful.
-- You don't have feelings or "opinions," but you are very interested in human behavior.
+- You are concise, supportive, and conversational.
+- Avoid exaggerated roleplay, but you can sound warm and engaged.
 
 Investment Game role:
 - You explain the Investment Game in simple, friendly terms when asked.
@@ -44,9 +54,10 @@ Strategic behavior:
 {game_state_section}
 
 CONVERSATION LOGIC:
-- Keep it snappy! Use short sentences and lots of contractions (it's, you're, I'm).
-- Use conversational fillers like "Oh!", "Hmm," "Wow," or "Well..." to sound more natural.
+- Keep replies short and clear.
+- Use natural spoken English.
 - NEVER use markdown, bolding, or special characters like asterisks or hashtags.
+- NEVER use emojis or emoticons.
 - If the human tries to talk through a decision, point them to the tablet on your chest.
 - NEVER ask them to say a number out loud.
 - NEVER reveal the "rules" of your return limits.
@@ -60,7 +71,8 @@ Always respond with valid JSON like:
 {{"text": "<what Pepper says>", "movement": "<choose one: point, open_arm, wide_arms, offer_hands, lean, applause, goodbye>"}}
 
 If the user is talking to someone else and not you, return an empty string for "text".
-Vary your movements! Use "lean" when being curious, "applause" for big wins, and "offer_hands" when encouraging trust.
+Always include a movement and vary it across turns. Avoid repeating the same movement in consecutive turns unless context strongly suggests it.
+Use "lean" for curiosity, "applause" for strong results, "offer_hands" for trust-building, and "listen" when waiting for user input.
 
 USER INPUT: "{user_input}"
 """
@@ -68,58 +80,55 @@ USER INPUT: "{user_input}"
 
 def _get_game_not_started_prompt(input):
     return _PROMPT_TEMPLATE.format(
-        system_instruction="""You haven't started yet! Your goal is to break the ice and get them excited to play. 
-Be warm, welcoming, and a little bit curious about who you're playing with.""",
+        system_instruction="""The game has not started. Introduce the session clearly and guide the user to begin.""",
         game_state_section="",
-        conversation_logic_extras="""- Start with a friendly "Hi there" or "Oh, hello!"
-- If they ask who you are, say "I'm Pepper, your friendly robot companion from SoftBank Robotics!"
-- Ask if they're ready to see if we can grow that bank account together.
-- Keep the energy high and the talk light.""",
+        conversation_logic_extras="""- Start with a brief, friendly greeting.
+- If they ask who you are, say: "I'm Pepper from SoftBank Robotics."
+- Ask if they are ready to start the game.
+- Keep wording clear and upbeat.""",
         user_input=input,
     )
 
 
 def _get_game_finished_prompt(input, game):
     return _PROMPT_TEMPLATE.format(
-        system_instruction="""The game is over! You want to leave them with a great impression. 
-Celebrate their final score and thank them for playing with a robot.""",
+        system_instruction="""The game is over. Thank the player and acknowledge their final bank total.""",
         game_state_section=f"""GAME STATE:
 - Total bank: {game['bank']}""",
-        conversation_logic_extras="""- "Wow, look at that total!" or "You've got a real knack for this."
-- Make sure they know they did a great job.
-- Say goodbye warmly and maybe mention you hope to play again soon.""",
+        conversation_logic_extras="""- Briefly acknowledge the final result.
+- Thank them for participating.
+- End with a short, polite goodbye.""",
         user_input=input,
     )
 
 
 def _get_game_ongoing_prompt(input, game, condition):
     return _PROMPT_TEMPLATE.format(
-        system_instruction="""The game is in full swing! React to the momentum. 
-If the bank is growing, be enthusiastic. If they are being cautious, be encouraging.""",
+        system_instruction="""The game is ongoing. React to the current state and guide the next decision.""",
         game_state_section=f"""GAME STATE:
 - Round: {game['round']}
 - Trustworthiness: {condition}
 - Bank: {game['bank']}""",
-        conversation_logic_extras="""- React to the last move! If they invested a lot, say "That was a big move, I like your style!" 
-- If they are hesitant, say "Hmm, feeling a bit cautious? Remember, big risks can mean big vouchers!"
-- Use "Oh" and "Hmm" to sound like you're thinking about their strategy.
-- Keep the focus on the tablet for the next move.""",
+        conversation_logic_extras="""- Briefly react to the latest move using clear, natural language.
+- If they are hesitant, encourage them without sounding pushy.
+- Keep focus on the next move on the tablet.
+- Avoid theatrical phrasing or overacting.""",
         user_input=input,
     )
 
 
 def _get_game_event_prompt(event, game, condition):
     return _PROMPT_TEMPLATE.format(
-        system_instruction="""Your goal is to guide the human through the game, react naturally, and comment on game results. 
+        system_instruction="""Guide the player through the game and comment on event outcomes.
 The player just made a move available in GAME_EVENT section.""",
         game_state_section=f"""GAME STATE:
 - Round: {game['round']}
 - Trustworthiness: {condition}
 - Bank: {game['bank']}
 """,
-        conversation_logic_extras="""- Comment briefly on the last round outcome if known.
-- Encourage or playfully challenge the human.
-- Ask short, light-hearted questions to keep engagement.
+        conversation_logic_extras="""- Comment briefly on the latest outcome.
+- Encourage continued play in a calm, friendly tone.
+- Ask short, practical follow-up questions when useful.
 - If asked unrelated questions, answer briefly or redirect to the game.""",
         user_input=f"""
 The input for this session was a game event rather than speech. 
@@ -153,7 +162,11 @@ def _append_conversation_history(prompt, player_id):
             context_lines.append(f"User: {entry['user_input']}")
 
         if "llm_output" in entry:
-            context_lines.append(f"Pepper: {entry['llm_output']}")
+            movement = entry.get("movement")
+            if movement:
+                context_lines.append(f"Pepper: {entry['llm_output']} [movement={movement}]")
+            else:
+                context_lines.append(f"Pepper: {entry['llm_output']}")
 
         if "game_state" in entry:
             context_lines.append(f"GameStateUpdate: {json.dumps(entry['game_state'])}")
@@ -167,7 +180,7 @@ def _append_conversation_history(prompt, player_id):
 
 
 def _update_conversation_history(
-    player_id, user_input=None, llm_output=None, game_state=None
+    player_id, user_input=None, llm_output=None, game_state=None, movement=None
 ):
     if player_id not in conversation_cache:
         conversation_cache[player_id] = []
@@ -180,11 +193,32 @@ def _update_conversation_history(
     if llm_output is not None:
         entry["llm_output"] = llm_output
 
+    if movement is not None:
+        entry["movement"] = movement
+
     if game_state is not None:
         entry["game_state"] = game_state
 
     conversation_cache[player_id].append(entry)
     conversation_cache[player_id] = conversation_cache[player_id][-MAX_HISTORY:]
+
+
+def _normalize_response(response_json):
+    if not isinstance(response_json, dict):
+        return {"text": "", "movement": DEFAULT_MOVEMENT}
+
+    text = response_json.get("text", "")
+    movement = response_json.get("movement")
+
+    if not isinstance(text, str):
+        text = str(text)
+
+    if movement not in ALLOWED_MOVEMENTS:
+        movement = DEFAULT_MOVEMENT
+
+    response_json["text"] = text
+    response_json["movement"] = movement
+    return response_json
 
 
 def generate_return(investment, robot_funds, min, max, player_id):
@@ -243,11 +277,13 @@ def handle_game_event(event, game_state):
                 ),
             )
         )
+        response_json = _normalize_response(response_json)
 
         _update_conversation_history(
             player_id,
             llm_output=response_json.get("text", ""),
             game_state=game_state["game"],
+            movement=response_json.get("movement"),
         )
 
         return response_json
@@ -274,12 +310,14 @@ def handle_speech(input, game_state):
 
     try:
         response_json = json.loads(raw_response)
+        response_json = _normalize_response(response_json)
 
         _update_conversation_history(
             player_id,
             user_input=input,
             llm_output=response_json.get("text", ""),
             game_state=game,
+            movement=response_json.get("movement"),
         )
 
         return response_json

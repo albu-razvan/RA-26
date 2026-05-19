@@ -45,10 +45,10 @@ services:
     build: ./piper
     container_name: piper
     command: >
-      --m /models/cortana/model
-      --length-scale 1.1
-      --noise-scale 0.8
-      --noise-w-scale 0.7
+      --m /models/androgynous/model
+      --length-scale 0.72
+      --noise-scale 0.9
+      --noise-w-scale 0.8
       --host 0.0.0.0
     volumes:
       - ./piper/models:/models

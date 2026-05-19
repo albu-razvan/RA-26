@@ -1,5 +1,7 @@
 import threading
 import os
+import time
+import requests
 
 from bottle import route, run, request, response
 from animations import PepperAnimation
@@ -10,6 +12,52 @@ ROBOT_IP = os.environ.get("ROBOT_IP", "192.168.0.100")
 PORT = 9559
 ROBOT_HANDLER_HOST = "127.0.0.1"
 ROBOT_HANDLER_CTRL_PORT = 9703
+SPEECH_API_URL = "http://speech:9701"
+TACTILE_KEYS = ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]
+TACTILE_POLL_SECONDS = 0.05
+TACTILE_COOLDOWN_SECONDS = 0.75
+
+
+def _notify_speech_interrupt():
+    try:
+        requests.post("{}/interrupt".format(SPEECH_API_URL), timeout=0.3)
+    except Exception as exception:
+        print("Failed to notify speech service: {}".format(exception))
+
+
+def _is_head_touched():
+    try:
+        for key in TACTILE_KEYS:
+            if float(memory.getData(key) or 0.0) > 0.5:
+                return True
+    except Exception:
+        return False
+
+    return False
+
+
+def _head_touch_interrupt_loop():
+    global audio_player
+
+    last_touch_state = False
+    last_interrupt_time = 0.0
+
+    while True:
+        touched = _is_head_touched()
+
+        if touched and not last_touch_state:
+            now = time.time()
+            if now - last_interrupt_time >= TACTILE_COOLDOWN_SECONDS:
+                try:
+                    audio_player.stopAll()
+                    _notify_speech_interrupt()
+                    print("Head touch detected: interrupt triggered")
+                except Exception as exception:
+                    print("Head touch interrupt failed: {}".format(exception))
+                last_interrupt_time = now
+
+        last_touch_state = touched
+        threading.Event().wait(TACTILE_POLL_SECONDS)
 
 
 @route("/animate", method="POST")
@@ -59,6 +107,7 @@ def handle_interrupt():
     try:
         audio_player = ALProxy("ALAudioPlayer", ROBOT_IP, PORT)
         audio_player.stopAll()
+        _notify_speech_interrupt()
         return {"status": "interrupted"}
     except Exception as exception:
         response.status = 500
@@ -66,13 +115,14 @@ def handle_interrupt():
 
 
 def setup_robot():
-    global anim, memory
+    global anim, memory, audio_player
 
     life = ALProxy("ALAutonomousLife", ROBOT_IP, PORT)
     awareness = ALProxy("ALBasicAwareness", ROBOT_IP, PORT)
     motion = ALProxy("ALMotion", ROBOT_IP, PORT)
     posture = ALProxy("ALRobotPosture", ROBOT_IP, PORT)
     memory = ALProxy("ALMemory", ROBOT_IP, PORT)
+    audio_player = ALProxy("ALAudioPlayer", ROBOT_IP, PORT)
 
     if life.getState() != "disabled":
         life.setState("disabled")
@@ -87,6 +137,10 @@ def setup_robot():
     awareness.setEnabled(True)
 
     anim = PepperAnimation(ROBOT_IP, PORT)
+
+    thread = threading.Thread(target=_head_touch_interrupt_loop)
+    thread.daemon = True
+    thread.start()
 
 
 if __name__ == "__main__":

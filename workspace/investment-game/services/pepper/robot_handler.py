@@ -46,7 +46,7 @@ class PepperAudioDuplex(ALModule):
         # self._connect_ctrl()  # Disabled - no longer needed
 
         # Audio setup
-        self.audio_device.setOutputVolume(45)
+        self.audio_device.setOutputVolume(50)
         self.attempt_connect()
 
         try:

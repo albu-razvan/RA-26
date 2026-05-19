@@ -24,6 +24,14 @@ class TextRequest(BaseModel):
     state_version: int
 
 
+@app.post("/interrupt")
+def interrupt_api():
+    state.robot_speak_end_time = 0.0
+    state.robot_tts_start_time = 0.0
+    state.robot_tts_pcm_16k = None
+    return {"status": "ok"}
+
+
 @app.post("/speak")
 def speak_api(request: TextRequest):
     if not request.text:

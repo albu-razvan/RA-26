@@ -32,11 +32,15 @@ FRAME_SIZE_BYTES = int(16000 * 0.02 * 2 * 1)  # 1 channel
 
 # Overlapped-speech detection
 OSD_WINDOW_MS = 1000  # Audio window passed to OSD model; larger is steadier, smaller is faster
-OSD_CHECK_INTERVAL_MS = 100  # How often to run OSD checks while robot speaks
+OSD_CHECK_INTERVAL_MS = 60  # How often to run OSD checks while robot speaks
 OSD_WINDOW_FRAMES = OSD_WINDOW_MS // FRAME_DURATION_MS
 OSD_CHECK_INTERVAL_FRAMES = OSD_CHECK_INTERVAL_MS // FRAME_DURATION_MS
 OSD_MIN_AUDIO_MS = 100  # Minimum buffered mic audio before running OSD (avoid tiny/noisy checks)
 OSD_MIN_AUDIO_SAMPLES = int((OSD_MIN_AUDIO_MS / 1000.0) * SAMPLE_RATE)
+OSD_MIN_OVERLAP_TOTAL_S = 0.22  # Require a meaningful overlap duration before barge-in
+OSD_CHECK_AFTER_ROBOT_START_S = 0.25  # Ignore early robot-only transients at TTS start
+OSD_HIT_WINDOW_SIZE = 4  # Sliding window size for OSD debounce
+OSD_HITS_REQUIRED_IN_WINDOW = 2  # Trigger when enough hits occur in window
 OSD_RESIDUAL_BOOST = 4.5  # Boost factor for residual energy in OSD overlap scoring
 OSD_MAX_GAIN = 60.0  # Upper cap for residual amplification in OSD path.
 OSD_TEMPLATE_LAG_STEP_MS = 20  # Step size when scanning lag offsets for robot-template alignment
@@ -64,7 +68,7 @@ class AudioProcessor:
         self.ring_buffer = collections.deque(maxlen=20)
 
         self.silence_counter = 0
-        self.SILENCE_LIMIT = int(os.environ.get("SILENCE_LIMIT_FRAMES", "70"))
+        self.SILENCE_LIMIT = int(os.environ.get("SILENCE_LIMIT_FRAMES", "55"))
 
         self.RMS_THRESHOLD = 500
         self.cooldown_frames = 0
@@ -84,6 +88,7 @@ class AudioProcessor:
         self.osd_lock = threading.Lock()
         self.osd_pending_audio = None
         self.osd_pending_token = 0.0
+        self.osd_overlap_history = collections.deque(maxlen=OSD_HIT_WINDOW_SIZE)
 
         self.captured_version = 0
 
@@ -111,13 +116,19 @@ class AudioProcessor:
             if self.osd_detector is None:
                 return
 
+            if time.time() - state.robot_tts_start_time < OSD_CHECK_AFTER_ROBOT_START_S:
+                return
+
             overlap = self.osd_detector.detect_overlap(
                 audio_i16,
                 robot_template_i16=state.robot_tts_pcm_16k,
                 robot_tts_start_time=state.robot_tts_start_time,
             )
+            self.osd_overlap_history.append(1 if overlap else 0)
+
             if (
-                overlap
+                len(self.osd_overlap_history) >= OSD_HIT_WINDOW_SIZE
+                and sum(self.osd_overlap_history) >= OSD_HITS_REQUIRED_IN_WINDOW
                 and time.time() < state.robot_speak_end_time
                 and state.robot_tts_start_time == token
             ):
@@ -182,6 +193,7 @@ class AudioProcessor:
                         self.overlap_best_ratio_history.clear()
                         self.osd_mic_buffer.clear()
                         self.osd_check_frames_accum = 0
+                        self.osd_overlap_history.clear()
 
                         with self.osd_lock:
                             self.osd_pending_audio = None
@@ -232,6 +244,7 @@ class AudioProcessor:
                     self.overlap_check_frames_accum = 0
                     self.osd_mic_buffer.clear()
                     self.osd_check_frames_accum = 0
+                    self.osd_overlap_history.clear()
                     with self.osd_lock:
                         self.osd_pending_audio = None
 
@@ -267,6 +280,11 @@ class AudioProcessor:
                                 json={"state": "listening"},
                                 timeout=1,
                             )
+                            requests.post(
+                                f"{PEPPER_HANDLER_URL}/animate",
+                                json={"action": "listen"},
+                                timeout=1,
+                            )
                         except Exception as exception:
                             print(f"Error changing state: {exception}")
 
@@ -296,6 +314,11 @@ class AudioProcessor:
                             requests.post(
                                 f"{PEPPER_HANDLER_URL}/set-state",
                                 json={"state": "processing"},
+                                timeout=1,
+                            )
+                            requests.post(
+                                f"{PEPPER_HANDLER_URL}/animate",
+                                json={"state": "stand"},
                                 timeout=1,
                             )
                         except Exception as exception:
@@ -392,17 +415,20 @@ class AudioProcessor:
 
         state.current_version = self.captured_version
         state.is_user_talking = True
-
+        
         try:
-            requests.post(f"{PEPPER_HANDLER_URL}/interrupt", timeout=1)
+            requests.post(
+                f"{PEPPER_HANDLER_URL}/interrupt",
+                timeout=1,
+            )
             state.robot_speak_end_time = 0.0
             requests.post(
                 f"{PEPPER_HANDLER_URL}/set-state",
-                json={"state": "listening"},
+                json={"state": "idle"},
                 timeout=1,
             )
-        except Exception as e:
-            print(f"Error triggering barge: {e}")
+        except Exception as exception:
+            print(f"Error changing state: {exception}")
 
         self.triggered = True
         self.current_utterance_bytes = 0
@@ -418,6 +444,7 @@ class AudioProcessor:
         self.overlap_best_ratio_history.clear()
         self.osd_mic_buffer.clear()
         self.osd_check_frames_accum = 0
+        self.osd_overlap_history.clear()
         with self.osd_lock:
             self.osd_pending_audio = None
 
@@ -495,6 +522,7 @@ class MicServer:
             self.processor.overlap_best_ratio_history.clear()
             self.processor.osd_mic_buffer.clear()
             self.processor.osd_check_frames_accum = 0
+            self.processor.osd_overlap_history.clear()
             
             with self.processor.osd_lock:
                 self.processor.osd_pending_audio = None
@@ -516,6 +544,7 @@ def start_sock_server():
             max_gain=OSD_MAX_GAIN,
             lag_step_ms=OSD_TEMPLATE_LAG_STEP_MS,
             use_denoise=OSD_USE_DENOISE,
+            min_overlap_total_s=OSD_MIN_OVERLAP_TOTAL_S,
         )
     except Exception as e:
         print(f"[OSD] Failed to load pipeline: {e}")
