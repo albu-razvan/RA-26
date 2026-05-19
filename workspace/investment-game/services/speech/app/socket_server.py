@@ -9,7 +9,6 @@ import os
 import time
 import state
 
-from parakeet import send_to_parakeet
 from speech import (
     process_speech,
     DEBUG_AUDIO_RECORD,
@@ -19,6 +18,7 @@ from speech import (
 from pepper import speak
 from debug_audio import DebugAudioRecorder
 from osd_detector import OSDDetector
+from realtime_stt import RealtimeSpeechTranscriber
 
 HOST = "0.0.0.0"
 PORT_MIC = 9702
@@ -53,22 +53,24 @@ OVERLAP_CHECK_AFTER_ROBOT_START_S = 0.1
 
 
 class AudioProcessor:
-    def __init__(self, osd_detector):
+    def __init__(self, osd_detector, stt_transcriber):
         self.vad = webrtcvad.Vad(3)
         self.buffer = b""
         self.osd_detector = osd_detector
+        self.stt_transcriber = stt_transcriber
 
         self.triggered = False
         self.voiced_frames = []
         self.ring_buffer = collections.deque(maxlen=20)
 
         self.silence_counter = 0
-        self.SILENCE_LIMIT = 100
+        self.SILENCE_LIMIT = int(os.environ.get("SILENCE_LIMIT_FRAMES", "30"))
 
         self.RMS_THRESHOLD = 500
         self.cooldown_frames = 0
         self.speech_start_threshold = 4
         self.consecutive_speech = 0
+        self.current_utterance_bytes = 0
 
         self.overlap_mic_buffer = collections.deque(maxlen=OVERLAP_CHECK_WINDOW_FRAMES)
         self.overlap_check_frames_accum = 0
@@ -269,11 +271,16 @@ class AudioProcessor:
                             print(f"Error changing state: {exception}")
 
                         self.triggered = True
-                        self.voiced_frames.extend(self.ring_buffer)
+                        self.current_utterance_bytes = 0
+                        self.stt_transcriber.start_utterance(self.captured_version)
+                        for buffered_frame in self.ring_buffer:
+                            self.stt_transcriber.feed_audio(buffered_frame)
+                            self.current_utterance_bytes += len(buffered_frame)
                         self.ring_buffer.clear()
                         self.consecutive_speech = 0
                 else:
-                    self.voiced_frames.append(front_int16)
+                    self.stt_transcriber.feed_audio(front_int16)
+                    self.current_utterance_bytes += len(front_int16)
 
                     if not is_speech:
                         self.silence_counter += 1
@@ -297,13 +304,13 @@ class AudioProcessor:
                         self.triggered = False
                         self.silence_counter = 0
 
-                        full_audio = b"".join(self.voiced_frames)
-                        self.voiced_frames = []
-
-                        if len(full_audio) < 8000:
+                        if self.current_utterance_bytes < 8000:
+                            self.stt_transcriber.cancel_last_utterance()
+                            self.current_utterance_bytes = 0
                             return None
 
-                        return self.clean_audio(full_audio), self.captured_version
+                        self.stt_transcriber.mark_utterance_end()
+                        self.current_utterance_bytes = 0
             except Exception as e:
                 print(f"Frame processing error: {e}")
                 continue
@@ -398,7 +405,12 @@ class AudioProcessor:
             print(f"Error triggering barge: {e}")
 
         self.triggered = True
-        self.voiced_frames = list(self.ring_buffer)
+        self.current_utterance_bytes = 0
+        self.stt_transcriber.start_utterance(self.captured_version)
+        for buffered_frame in self.ring_buffer:
+            self.stt_transcriber.feed_audio(buffered_frame)
+            self.current_utterance_bytes += len(buffered_frame)
+        self.voiced_frames = []
         self.ring_buffer.clear()
         self.consecutive_speech = 0
         self.overlap_mic_buffer.clear()
@@ -464,13 +476,7 @@ class MicServer:
                 if not data:
                     break
 
-                result = self.processor.process_stream(data)
-                if result:
-                    sentence, version = result
-                    threading.Thread(
-                        target=send_to_parakeet,
-                        args=(sentence, SAMPLE_RATE, 2, success_handler, version),
-                    ).start()
+                self.processor.process_stream(data)
         except Exception as e:
             print(f"[MIC] Connection error: {e}")
         finally:
@@ -482,6 +488,8 @@ class MicServer:
             self.processor.triggered = False
             self.processor.voiced_frames = []
             self.processor.buffer = b""
+            self.processor.current_utterance_bytes = 0
+            self.processor.stt_transcriber.cancel_last_utterance()
             self.processor.overlap_mic_buffer.clear()
             self.processor.overlap_check_frames_accum = 0
             self.processor.overlap_best_ratio_history.clear()
@@ -493,6 +501,11 @@ class MicServer:
 
 
 def start_sock_server():
+    stt_transcriber = RealtimeSpeechTranscriber(
+        sample_rate=SAMPLE_RATE,
+        success_handler=success_handler,
+    )
+
     osd_detector = None
     try:
         osd_detector = OSDDetector(
@@ -507,7 +520,7 @@ def start_sock_server():
     except Exception as e:
         print(f"[OSD] Failed to load pipeline: {e}")
 
-    processor = AudioProcessor(osd_detector)
+    processor = AudioProcessor(osd_detector, stt_transcriber)
     mic_server = MicServer(processor)
 
     threading.Thread(target=mic_server.start, daemon=True).start()

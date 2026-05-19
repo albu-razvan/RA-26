@@ -1,5 +1,0 @@
-onnx-asr[cpu,hub]
-fastapi
-uvicorn
-python-multipart
-soundfile
