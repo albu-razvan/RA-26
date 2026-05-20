@@ -17,6 +17,11 @@ def api_invest():
     return game.invest(request)
 
 
+@app.route("/reset-game", methods=["POST"])
+def api_reset_game():
+    return game.reset_game()
+
+
 @app.route("/handle-speech", methods=["POST"])
 def api_handle_speech():
     try:
@@ -45,7 +50,12 @@ def api_handle_speech():
 def api_status():
     try:
         state = game.get_state()
-        return jsonify({"state_version": state.get("state_version", 0)})
+        return jsonify(
+            {
+                "state_version": state.get("state_version", 0),
+                "state": state.get("state", "GAME_NOT_STARTED"),
+            }
+        )
     except Exception as exception:
         return jsonify({"error": str(exception)}), 500
 

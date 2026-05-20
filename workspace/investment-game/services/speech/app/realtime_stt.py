@@ -13,8 +13,16 @@ class RealtimeSpeechTranscriber:
         self.pending_versions = collections.deque()
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
+        self.awaiting_final_text = False
+        self.finalization_timeout_s = 1.2
 
-        self.recorder = AudioToTextRecorder(
+        self.recorder = self._build_recorder()
+
+        self.worker = threading.Thread(target=self._run, daemon=True)
+        self.worker.start()
+
+    def _build_recorder(self):
+        return AudioToTextRecorder(
             use_microphone=False,
             device="cpu",
             model=os.environ.get("STT_MODEL", "base.en"),
@@ -30,8 +38,13 @@ class RealtimeSpeechTranscriber:
             ensure_sentence_ends_with_period=False,
         )
 
-        self.worker = threading.Thread(target=self._run, daemon=True)
-        self.worker.start()
+    def _reset_recorder(self):
+        try:
+            self.recorder.shutdown()
+        except Exception as exception:
+            print(f"RealtimeSTT reset shutdown error: {exception}")
+
+        self.recorder = self._build_recorder()
 
     def _run(self):
         while not self.stop_event.is_set():
@@ -41,15 +54,25 @@ class RealtimeSpeechTranscriber:
                 print(f"RealtimeSTT loop error: {exception}")
 
     def _handle_final_text(self, text):
-        transcript = text.strip()
-        if not transcript:
-            return
-
+        transcript = (text or "").strip()
         with self.lock:
             if self.pending_versions:
                 state_version = self.pending_versions.popleft()
             else:
-                state_version = 0
+                self.awaiting_final_text = False
+                if transcript:
+                    print(
+                        "Recognized transcript without matching utterance. "
+                        "Dropping stale STT output."
+                    )
+
+                return
+
+            self.awaiting_final_text = False
+
+        if not transcript:
+            print("Recognized empty transcript. Dropping utterance.")
+            return
 
         print(f"Recognized: {transcript}")
         threading.Thread(
@@ -60,12 +83,40 @@ class RealtimeSpeechTranscriber:
 
     def start_utterance(self, state_version):
         with self.lock:
+            if self.awaiting_final_text:
+                return False
+
             self.pending_versions.append(state_version)
+
+            return True
 
     def cancel_last_utterance(self):
         with self.lock:
             if self.pending_versions:
                 self.pending_versions.pop()
+
+            self.awaiting_final_text = False
+
+    def is_ready_for_new_utterance(self):
+        with self.lock:
+            return not self.awaiting_final_text
+
+    def _finalization_watchdog(self):
+        self.stop_event.wait(self.finalization_timeout_s)
+
+        if self.stop_event.is_set():
+            return
+
+        with self.lock:
+            if not self.awaiting_final_text:
+                return
+
+            self.awaiting_final_text = False
+            if self.pending_versions:
+                self.pending_versions.popleft()
+
+        print("RealtimeSTT finalization timeout. Resetting STT stream.")
+        self._reset_recorder()
 
     def feed_audio(self, audio_bytes):
         try:
@@ -74,8 +125,16 @@ class RealtimeSpeechTranscriber:
             print(f"RealtimeSTT feed error: {exception}")
 
     def mark_utterance_end(self):
-        trailing_silence = b"\x00\x00" * int(self.sample_rate * 0.45)
+        with self.lock:
+            if not self.pending_versions:
+                return
+
+            self.awaiting_final_text = True
+
+        trailing_silence = b"\x00\x00" * int(self.sample_rate * 0.8)
         self.feed_audio(trailing_silence)
+
+        threading.Thread(target=self._finalization_watchdog, daemon=True).start()
 
     def shutdown(self):
         self.stop_event.set()

@@ -2,11 +2,9 @@ import threading
 import random
 import copy
 import ulid
-import time
 
 from logger import log_game_observation
-from interaction import handle_game_event
-from interaction.llm import generate_return
+from interaction import handle_game_event, stop_output
 
 from flask import jsonify
 
@@ -28,13 +26,11 @@ UNTRUSTWORTHY_MAX_MULTIPLIER = 0.8
 STD_DEV = 0.4
 
 
-def _generate_return(investment, robot_type, condition):
+def _generate_return(investment, robot_type):
     global _player_id
 
     if investment == 0:
         return 0
-
-    robot_funds = investment * 3
 
     if robot_type == "trustworthy":
         min_multiplier = TRUSTWORTHY_MIN_MULTIPLIER
@@ -46,16 +42,7 @@ def _generate_return(investment, robot_type, condition):
     min_return = int(round(min_multiplier * investment))
     max_return = int(round(max_multiplier * investment))
 
-    if condition == "LLM":
-        returned = generate_return(
-            investment=investment,
-            robot_funds=robot_funds,
-            min=min_return,
-            max=max_return,
-            player_id=_player_id,
-        )
-    else:
-        returned = random.randint(min_return, max_return)
+    returned = random.randint(min_return, max_return)
 
     if returned is None:
         returned = max_return
@@ -70,11 +57,19 @@ def _generate_return(investment, robot_type, condition):
 def get_state():
     global _game, _player_id, _condition, _state_version
 
-    if _game == None:
+    if _game is None:
+        state = "GAME_NOT_STARTED"
+    elif _game["round"] >= _game["max_rounds"]:
+        state = "GAME_FINISHED"
+    else:
+        state = "GAME_ONGOING"
+
+    if _game is None:
         return {
             "game": None,
             "player_id": _player_id,
             "condition": _condition,
+            "state": state,
             "state_version": _state_version,
         }
 
@@ -82,6 +77,7 @@ def get_state():
         "game": copy.deepcopy(_game),
         "player_id": _player_id,
         "condition": _condition,
+        "state": state,
         "state_version": _state_version,
     }
 
@@ -100,12 +96,14 @@ def start_game():
         "max_rounds": MAX_ROUNDS,
     }
 
+    _state_version += 1
+    current_state = get_state()
+
     handle_game_event(
         {"state": "GAME_STARTED"},
-        get_state(),
+        current_state,
     )
 
-    _state_version += 1
     return jsonify(
         {
             "player_id": _player_id,
@@ -116,9 +114,19 @@ def start_game():
     )
 
 
-def _delayed_reaction(event, state):
-    time.sleep(5.0)
+def reset_game():
+    global _game, _player_id, _state_version
 
+    stop_output()
+
+    _game = None
+    _player_id = str(ulid.new())
+    _state_version += 1
+
+    return jsonify({"status": "ok"})
+
+
+def _reaction(event, state):
     handle_game_event(event, state)
 
 
@@ -146,7 +154,7 @@ def invest(request):
         return jsonify({"error": "Investment exceeds round budget"}), 400
 
     returned, min_returned, max_returned = _generate_return(
-        investment, _game["robot_type"], _condition
+        investment, _game["robot_type"]
     )
 
     _game["bank"] += returned
@@ -191,8 +199,8 @@ def invest(request):
             "returned_by_robot": returned,
         }
 
-    current_state = get_state()
-    threading.Thread(target=_delayed_reaction, args=(event_data, current_state)).start()
-
     _state_version += 1
+    current_state = get_state()
+    threading.Thread(target=_reaction, args=(event_data, current_state), daemon=True).start()
+
     return jsonify(response)

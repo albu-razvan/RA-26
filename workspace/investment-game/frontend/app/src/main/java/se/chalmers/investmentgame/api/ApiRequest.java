@@ -23,6 +23,7 @@ import se.chalmers.investmentgame.utils.Handlers;
 public class ApiRequest {
     private static final String TAG = "ApiRequest";
     private static final Gson GSON = new Gson();
+    private static final long REQUEST_ARTIFICIAL_DELAY = 1500;
 
     private static String API;
 
@@ -117,6 +118,12 @@ public class ApiRequest {
 
             if (statusCode >= 200 && statusCode < 300) {
                 T data = GSON.fromJson(response.toString(), responseClass);
+
+                try {
+                    Thread.sleep(REQUEST_ARTIFICIAL_DELAY);
+                } catch (InterruptedException exception) {
+                    Log.e(TAG, "request: ", exception);
+                }
 
                 return ApiResult.success(data, statusCode);
             } else {

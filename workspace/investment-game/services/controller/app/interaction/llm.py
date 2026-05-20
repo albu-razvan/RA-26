@@ -103,10 +103,12 @@ def _get_game_finished_prompt(input, game):
 
 
 def _get_game_ongoing_prompt(input, game, condition):
+    current_round = game["round"] + 1
+
     return _PROMPT_TEMPLATE.format(
         system_instruction="""The game is ongoing. React to the current state and guide the next decision.""",
         game_state_section=f"""GAME STATE:
-- Round: {game['round']}
+- Round: {current_round}
 - Trustworthiness: {condition}
 - Bank: {game['bank']}""",
         conversation_logic_extras="""- Briefly react to the latest move using clear, natural language.
@@ -219,42 +221,6 @@ def _normalize_response(response_json):
     response_json["text"] = text
     response_json["movement"] = movement
     return response_json
-
-
-def generate_return(investment, robot_funds, min, max, player_id):
-    try:
-        broker_history = _get_broker_history(player_id)
-
-        return int(
-            generate_response(
-                f"""
-SYSTEM INSTRUCTION:
-You are an investment broker in a trust game.
-You are strategic and adaptive.
-
-Mechanics:
-- The player sends you an investment.
-- The investment is TRIPLED when you receive it.
-- You now have {robot_funds}.
-- You must decide how much to send back.
-
-Previous rounds:
-{broker_history}
-
-Rules:
-- Output ONLY a base-10 integer.
-- No words.
-- No explanation.
-- Must be between {min} and {max}.
-
-Player investment: {investment}
-Money you received (tripled): {robot_funds}
-"""
-            )
-        )
-    except Exception as exception:
-        print(str(exception))
-        return None
 
 
 def handle_game_event(event, game_state):

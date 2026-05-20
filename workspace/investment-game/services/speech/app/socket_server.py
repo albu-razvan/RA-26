@@ -257,14 +257,28 @@ class AudioProcessor:
                         self.consecutive_speech = 0
 
                     if self.consecutive_speech >= self.speech_start_threshold and not is_robot_speaking:
+                        if not self.stt_transcriber.is_ready_for_new_utterance():
+                            self.consecutive_speech = 0
+                            continue
+
                         print("[VAD] Voice detected")
+
+                        game_state = "GAME_NOT_STARTED"
 
                         try:
                             resp = requests.get(f"{CONTROLLER_URL}/status", timeout=0.2)
-                            self.captured_version = resp.json().get("state_version", 0)
+                            status = resp.json()
+                            self.captured_version = status.get("state_version", 0)
+                            game_state = status.get("state", "GAME_NOT_STARTED")
                         except Exception as exception:
                             print(f"Error fetching version: {exception}")
                             self.captured_version = 0
+
+                        if game_state == "GAME_NOT_STARTED":
+                            self.consecutive_speech = 0
+                            self.ring_buffer.clear()
+                            
+                            continue
 
                         state.current_version = self.captured_version
                         state.is_user_talking = True
@@ -290,7 +304,11 @@ class AudioProcessor:
 
                         self.triggered = True
                         self.current_utterance_bytes = 0
-                        self.stt_transcriber.start_utterance(self.captured_version)
+                        if not self.stt_transcriber.start_utterance(self.captured_version):
+                            self.triggered = False
+                            self.current_utterance_bytes = 0
+                            continue
+
                         for buffered_frame in self.ring_buffer:
                             self.stt_transcriber.feed_audio(buffered_frame)
                             self.current_utterance_bytes += len(buffered_frame)
@@ -318,7 +336,7 @@ class AudioProcessor:
                             )
                             requests.post(
                                 f"{PEPPER_HANDLER_URL}/animate",
-                                json={"state": "stand"},
+                                json={"action": "stand"},
                                 timeout=1,
                             )
                         except Exception as exception:
@@ -432,7 +450,11 @@ class AudioProcessor:
 
         self.triggered = True
         self.current_utterance_bytes = 0
-        self.stt_transcriber.start_utterance(self.captured_version)
+        if not self.stt_transcriber.start_utterance(self.captured_version):
+            self.triggered = False
+            self.current_utterance_bytes = 0
+            return
+
         for buffered_frame in self.ring_buffer:
             self.stt_transcriber.feed_audio(buffered_frame)
             self.current_utterance_bytes += len(buffered_frame)
@@ -466,12 +488,32 @@ class AudioProcessor:
 
 
 def success_handler(text, state_version):
+    try:
+        status_response = requests.get(f"{CONTROLLER_URL}/status", timeout=1)
+        status = status_response.json()
+
+        if status.get("state") == "GAME_NOT_STARTED":
+            print("Game has not started. Dropping recognized speech.")
+            return
+
+        if status.get("state_version", 0) != state_version:
+            print("Game state changed before processing speech. Dropping input.")
+            return
+    except Exception as exception:
+        print(f"Status check failed before processing speech: {exception}")
+        return
+
     response = process_speech(text, state_version)
 
     if response is not None:
         try:
             status_response = requests.get(f"{CONTROLLER_URL}/status", timeout=1)
-            if status_response.json().get("state_version", 0) != state_version:
+            status = status_response.json()
+            if status.get("state") == "GAME_NOT_STARTED":
+                print("Game has not started. Dropping speech response.")
+                return
+
+            if status.get("state_version", 0) != state_version:
                 print("Game state changed while generating speech. Dropping response.")
                 return
         except Exception as exception:

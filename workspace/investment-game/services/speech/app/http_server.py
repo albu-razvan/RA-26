@@ -26,6 +26,7 @@ class TextRequest(BaseModel):
 
 @app.post("/interrupt")
 def interrupt_api():
+    state.is_user_talking = False
     state.robot_speak_end_time = 0.0
     state.robot_tts_start_time = 0.0
     state.robot_tts_pcm_16k = None

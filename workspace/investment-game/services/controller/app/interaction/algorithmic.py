@@ -4,24 +4,6 @@ import random
 from azure_openai import generate_response
 
 PREDEFINED_RESPONSES = {
-    "GAME_STARTED": [
-        {
-            "text": """Hi there! I'm Pepper, a social robot from SoftBank Robotics. 
-In the Investment Game, you make decisions about how much money to invest each round using the tablet. 
-I act as the broker: I decide how much of your invested amount to return to you. 
-Your bank always belongs entirely to you, and I only guide the flow of the game. 
-Are you ready to start investing?""",
-            "movement": "wave",
-        },
-        {
-            "text": """Hello! Welcome to the Investment Game. 
-The goal is simple: you invest some of your bank each round and I return part of it to you. 
-The game is designed to be fun and a bit strategic. 
-You control your decisions entirely through the tablet, and I just help by showing how your investments return over time. 
-Are you ready to start investing?""",
-            "movement": "open_arm",
-        },
-    ],
     "GAME_ONGOING": [
         {"text": "Nice! You invested {invested} this round.", "movement": "lean"},
         {"text": "The bank is now at {bank}. Keep it up!", "movement": "applause"},
@@ -289,7 +271,8 @@ def _llm_choose_response(filled_templates, game_data):
 
     prompt = f"""
 SYSTEM INSTRUCTION:
-You are Pepper, a social robot. You must pick the best response from the following options based on the current game state. 
+You are Pepper, a social robot. 
+You must pick the best response from the following options based on the current game state. 
 Do not generate new text, only select one of the options and return it exactly as formatted.
 
 CURRENT GAME STATE:
