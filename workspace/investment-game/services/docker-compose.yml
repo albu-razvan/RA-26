@@ -2,11 +2,8 @@ services:
   controller:
     build: ./controller
     container_name: controller
-    environment:
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
-      - AZURE_OPENAI_DEPLOYMENT=${AZURE_OPENAI_DEPLOYMENT}
-      - AZURE_OPENAI_API_VERSION=${AZURE_OPENAI_API_VERSION}
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     volumes:
@@ -16,9 +13,8 @@ services:
   speech:
     build: ./speech
     container_name: speech
-    environment:
-      - ROBOT_IP=${ROBOT_IP}
-      - HF_TOKEN=${HF_TOKEN}
+    env_file:
+      - .env
     ports:
       - "9559:9559"
       - "9700:9700"
@@ -31,8 +27,9 @@ services:
   pepper:
     build: ./pepper
     container_name: naoqi
+    env_file:
+      - .env
     environment:
-      - ROBOT_IP=${ROBOT_IP}
       - SOCKET_SERVER_HOST=speech
       - SOCKET_SERVER_PORT=9700
       - REMOTE_REC_PORT=9702
@@ -44,11 +41,11 @@ services:
   tts:
     build: ./piper
     container_name: piper
-    command: >
-      --m /models/androgynous/model
-      --length-scale 0.72
-      --noise-scale 0.9
-      --noise-w-scale 0.8
-      --host 0.0.0.0
+    env_file:
+      - .env
+    environment:
+      - PIPER_MODEL_ROOT=/models
+      - PIPER_PATH=/usr/local/bin/piper
+      - JACK_NO_START_SERVER=1
     volumes:
       - ./piper/models:/models

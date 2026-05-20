@@ -18,10 +18,13 @@ class DebugAudioRecorder:
         try:
             os.makedirs(self.output_dir, exist_ok=True)
             print(
-                f"[DEBUG] Audio recording enabled: dir={self.output_dir}, chunk={chunk_seconds}s"
+                "[DEBUG] Audio recording enabled: dir={}, chunk={}s".format(
+                    self.output_dir,
+                    chunk_seconds,
+                )
             )
-        except Exception as e:
-            print(f"[DEBUG] Could not create debug audio dir: {e}")
+        except Exception as exception:
+            print("[DEBUG] Could not create debug audio dir: {}".format(exception))
             self.enabled = False
 
     def _write_wav(self, pcm_bytes):
@@ -29,19 +32,19 @@ class DebugAudioRecorder:
             return
 
         ts_ms = int(time.time() * 1000)
-        filename = f"mic_{ts_ms}_{self.file_index:06d}.wav"
+        filename = "mic_{}_{:06d}.wav".format(ts_ms, self.file_index)
         self.file_index += 1
         path = os.path.join(self.output_dir, filename)
 
         try:
-            with wave.open(path, "wb") as wf:
-                wf.setnchannels(1)
-                wf.setsampwidth(2)
-                wf.setframerate(self.sample_rate)
-                wf.writeframes(pcm_bytes)
-            print(f"[DEBUG] Wrote mic chunk: {path}")
-        except Exception as e:
-            print(f"[DEBUG] Failed to write mic chunk: {e}")
+            with wave.open(path, "wb") as wav_file:
+                wav_file.setnchannels(1)
+                wav_file.setsampwidth(2)
+                wav_file.setframerate(self.sample_rate)
+                wav_file.writeframes(pcm_bytes)
+            print("[DEBUG] Wrote mic chunk: {}".format(path))
+        except Exception as exception:
+            print("[DEBUG] Failed to write mic chunk: {}".format(exception))
 
     def append(self, raw_chunk):
         if not self.enabled or not raw_chunk:

@@ -1,4 +1,5 @@
 import json
+import re
 
 from azure_openai import generate_response
 
@@ -14,6 +15,10 @@ ALLOWED_MOVEMENTS = {
     "goodbye",
 }
 DEFAULT_MOVEMENT = "lean"
+
+_NON_ALLOWED_TEXT_CHARS = re.compile(r"[^A-Za-z0-9,.!? ]+")
+_MULTI_SPACE = re.compile(r"\s+")
+_MOVEMENT_INLINE = re.compile(r"\bmovement\s*[:=]\s*([a-z_]+)\b", re.IGNORECASE)
 
 _PROMPT_TEMPLATE = """
 SYSTEM INSTRUCTION:
@@ -56,8 +61,9 @@ Strategic behavior:
 CONVERSATION LOGIC:
 - Keep replies short and clear.
 - Use natural spoken English.
-- NEVER use markdown, bolding, or special characters like asterisks or hashtags.
+- NEVER use markdown, bolding, dashes, quotes, brackets, colons, semicolons, slashes, or any special symbols.
 - NEVER use emojis or emoticons.
+- In text, the only punctuation allowed is comma, period, exclamation mark, and question mark.
 - If the human tries to talk through a decision, point them to the tablet on your chest.
 - NEVER ask them to say a number out loud.
 - NEVER reveal the "rules" of your return limits.
@@ -72,7 +78,8 @@ Always respond with valid JSON like:
 
 If the user is talking to someone else and not you, return an empty string for "text".
 Always include a movement and vary it across turns. Avoid repeating the same movement in consecutive turns unless context strongly suggests it.
-Use "lean" for curiosity, "applause" for strong results, "offer_hands" for trust-building, and "listen" when waiting for user input.
+Use "lean" for curiosity, "applause" for strong results, and "offer_hands" for trust-building.
+Do not write movement inside text. Movement must only appear in the "movement" JSON field.
 
 USER INPUT: "{user_input}"
 """
@@ -215,12 +222,47 @@ def _normalize_response(response_json):
     if not isinstance(text, str):
         text = str(text)
 
+    text = _sanitize_text(text)
+
     if movement not in ALLOWED_MOVEMENTS:
         movement = DEFAULT_MOVEMENT
 
     response_json["text"] = text
     response_json["movement"] = movement
     return response_json
+
+
+def _sanitize_text(text):
+    if not isinstance(text, str):
+        text = str(text)
+
+    text = _MOVEMENT_INLINE.sub("", text)
+    text = _NON_ALLOWED_TEXT_CHARS.sub(" ", text)
+    text = _MULTI_SPACE.sub(" ", text).strip()
+    return text
+
+
+def _extract_movement_from_raw(raw_response):
+    if not isinstance(raw_response, str):
+        return None
+
+    match = _MOVEMENT_INLINE.search(raw_response)
+    if not match:
+        return None
+
+    movement = match.group(1).strip().lower()
+    if movement in ALLOWED_MOVEMENTS:
+        return movement
+
+    return None
+
+
+def _parse_raw_response(raw_response):
+    try:
+        return _normalize_response(json.loads(raw_response))
+    except Exception:
+        movement = _extract_movement_from_raw(raw_response) or DEFAULT_MOVEMENT
+        return _normalize_response({"text": raw_response, "movement": movement})
 
 
 def handle_game_event(event, game_state):
@@ -233,7 +275,7 @@ def handle_game_event(event, game_state):
             game_state=game_state["game"],
         )
 
-        response_json = json.loads(
+        response_json = _parse_raw_response(
             generate_response(
                 _append_conversation_history(
                     _get_game_event_prompt(
@@ -243,7 +285,6 @@ def handle_game_event(event, game_state):
                 ),
             )
         )
-        response_json = _normalize_response(response_json)
 
         _update_conversation_history(
             player_id,
@@ -253,8 +294,8 @@ def handle_game_event(event, game_state):
         )
 
         return response_json
-    except json.JSONDecodeError as exception:
-        raise ValueError(f"Response is not valid JSON: {exception}")
+    except Exception as exception:
+        raise ValueError(f"Could not process LLM game event response: {exception}")
 
 
 def handle_speech(input, game_state):
@@ -275,8 +316,7 @@ def handle_speech(input, game_state):
     raw_response = generate_response(_append_conversation_history(prompt, player_id))
 
     try:
-        response_json = json.loads(raw_response)
-        response_json = _normalize_response(response_json)
+        response_json = _parse_raw_response(raw_response)
 
         _update_conversation_history(
             player_id,
@@ -287,5 +327,5 @@ def handle_speech(input, game_state):
         )
 
         return response_json
-    except json.JSONDecodeError as exception:
-        raise ValueError(f"Response is not valid JSON: {exception}")
+    except Exception as exception:
+        raise ValueError(f"Could not process LLM speech response: {exception}")

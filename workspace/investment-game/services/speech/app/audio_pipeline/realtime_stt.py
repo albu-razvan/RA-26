@@ -42,7 +42,7 @@ class RealtimeSpeechTranscriber:
         try:
             self.recorder.shutdown()
         except Exception as exception:
-            print(f"RealtimeSTT reset shutdown error: {exception}")
+            print("RealtimeSTT reset shutdown error: {}".format(exception))
 
         self.recorder = self._build_recorder()
 
@@ -51,7 +51,7 @@ class RealtimeSpeechTranscriber:
             try:
                 self.recorder.text(self._handle_final_text)
             except Exception as exception:
-                print(f"RealtimeSTT loop error: {exception}")
+                print("RealtimeSTT loop error: {}".format(exception))
 
     def _handle_final_text(self, text):
         transcript = (text or "").strip()
@@ -74,7 +74,7 @@ class RealtimeSpeechTranscriber:
             print("Recognized empty transcript. Dropping utterance.")
             return
 
-        print(f"Recognized: {transcript}")
+        print("Recognized: {}".format(transcript))
         threading.Thread(
             target=self.success_handler,
             args=(transcript, state_version),
@@ -122,7 +122,7 @@ class RealtimeSpeechTranscriber:
         try:
             self.recorder.feed_audio(audio_bytes, original_sample_rate=self.sample_rate)
         except Exception as exception:
-            print(f"RealtimeSTT feed error: {exception}")
+            print("RealtimeSTT feed error: {}".format(exception))
 
     def mark_utterance_end(self):
         with self.lock:
@@ -141,4 +141,4 @@ class RealtimeSpeechTranscriber:
         try:
             self.recorder.shutdown()
         except Exception as exception:
-            print(f"RealtimeSTT shutdown error: {exception}")
+            print("RealtimeSTT shutdown error: {}".format(exception))

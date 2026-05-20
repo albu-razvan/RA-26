@@ -40,13 +40,8 @@ class PepperAudioDuplex(ALModule):
         self.memory = ALProxy("ALMemory")
         self.leds = ALProxy("ALLeds")
 
-        # Control socket (disabled - using separate ports now)
-        self.ctrl_sock = None
-        self.ctrl_lock = threading.Lock()
-        # self._connect_ctrl()  # Disabled - no longer needed
-
         # Audio setup
-        self.audio_device.setOutputVolume(50)
+        self.audio_device.setOutputVolume(70)
         self.attempt_connect()
 
         try:
@@ -178,7 +173,7 @@ class PepperAudioDuplex(ALModule):
                 speaking = self.pepper_is_speaking
                 state = getattr(self, "current_eye_state", "idle")
 
-            if speaking:
+            if speaking or state == "speaking":
                 effective = "speaking"
             elif state in ["listening", "processing"]:
                 effective = state

@@ -88,9 +88,9 @@ class OSDDetector:
 
             total = sum(max(0.0, seg.end - seg.start) for seg in segments)
             if segments:
-                print(f"[OSD] overlap segments={len(segments)} total={total:.3f}s")
+                print("[OSD] overlap segments={} total={:.3f}s".format(len(segments), total))
 
             return total >= self.min_overlap_total_s
-        except Exception as e:
-            print(f"[OSD] Detection failed: {e}")
+        except Exception as exception:
+            print("[OSD] Detection failed: {}".format(exception))
             return False

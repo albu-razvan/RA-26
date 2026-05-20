@@ -1,25 +1,57 @@
-import socket
 import state
+import requests
 import time
-import os
-import wave
-import numpy as np
 
-PEPPER_IP = os.environ.get("ROBOT_IP", "192.168.0.100")
-PEPPER_PORT = 6000
+PEPPER_API_URL = "http://pepper:8080"
 
-from tts import to_speech
+from tts import register_stream_session, get_public_stream_url
 
 
-def get_wav_duration(filename):
+def _start_stream_playback(stream_url):
+    response = requests.post(
+        "{}/play-stream".format(PEPPER_API_URL),
+        json={"url": stream_url},
+        timeout=2,
+    )
+    response.raise_for_status()
+
+
+def _wait_for_turn_to_speak(text, version):
+    if not state.is_user_talking and not state.robot_is_speaking:
+        return True
+
+    print("Speech busy. Queueing speech: '{}'".format(text))
+    wait_started = time.time()
+    queued_generation = state.speech_cancel_generation
+    state.queued_speech_waiters += 1
+
     try:
-        with wave.open(filename, 'r') as f:
-            frames = f.getnframes()
-            rate = f.getframerate()
-            return frames / float(rate)
-    except Exception as e:
-        print(f"Error getting wav duration: {e}")
-        return 0.0
+        while state.is_user_talking or state.robot_is_speaking:
+            if queued_generation != state.speech_cancel_generation:
+                print("Discarding queued speech after interrupt: '{}'".format(text))
+                return False
+
+            if version is not None and version != state.current_version:
+                print("Discarding queued speech (version updated while waiting): {}".format(text))
+                return False
+
+            # Safety valve in case playback-ended/interrupt callback is missed.
+            if time.time() - wait_started > 25:
+                print("Queued speech timed out waiting for turn: '{}'".format(text))
+                return False
+
+            time.sleep(0.1)
+
+        # If interrupt happened exactly while busy flags were being cleared,
+        # cancel queued speech instead of letting it play next.
+        if queued_generation != state.speech_cancel_generation:
+            print("Discarding queued speech after interrupt: '{}'".format(text))
+            return False
+
+        return True
+    finally:
+        if state.queued_speech_waiters > 0:
+            state.queued_speech_waiters -= 1
 
 
 def speak(text, version=None):
@@ -27,18 +59,8 @@ def speak(text, version=None):
         print(f"Discarding speech (outdated before start): {text}")
         return
 
-    if state.is_user_talking:
-        print(f"User is talking. Queueing speech: '{text}'")
-
-        while state.is_user_talking:
-            if version is not None and version != state.current_version:
-                print(
-                    f"Discarding queued speech (version updated while waiting): {text}"
-                )
-                return
-            time.sleep(0.1)
-
-        print(f"Silence detected. Proceeding with queued speech: '{text}'")
+    if not _wait_for_turn_to_speak(text, version):
+        return
 
     if version is not None and version != state.current_version:
         print(f"Discarding speech (outdated after waiting): {text}")
@@ -47,63 +69,36 @@ def speak(text, version=None):
     if text is None or text == "":
         return
 
-    file = to_speech(text)
-    if not file:
+    token = register_stream_session(text, version)
+    stream_url = get_public_stream_url(token)
+    if not stream_url:
+        print("SPEECH_PUBLIC_HOST/COMPUTER_IP is not configured. Cannot stream TTS.")
         return
 
-    # Cache the PCM template so the mic server can quickly detect overlap
-    # (robot talking + user speaking) without waiting for diarization.
-    try:
-        with wave.open(file, "rb") as f:
-            sr_before = f.getframerate()
-            nframes = f.getnframes()
-            raw = f.readframes(nframes)
-
-            # Expect 16-bit PCM; if not, the WAV is probably unsuitable.
-            audio = np.frombuffer(raw, dtype=np.int16)
-            if f.getnchannels() > 1:
-                audio = audio.reshape(-1, f.getnchannels())[:, 0]
-
-            sr = sr_before
-            if sr_before != 16000:
-                # Simple linear resample to 16k for the mic pipeline.
-                x_old = np.linspace(0.0, 1.0, num=audio.shape[0], endpoint=False)
-                x_new = np.linspace(0.0, 1.0, num=int(audio.shape[0] * 16000 / sr_before), endpoint=False)
-                audio_f = audio.astype(np.float32)
-                audio_rs = np.interp(x_new, x_old, audio_f).astype(np.int16)
-                audio = audio_rs
-                sr = 16000
-
-            state.robot_tts_pcm_16k = audio
-            state.robot_tts_start_time = time.time()
-    except Exception as e:
-        print(f"Could not cache TTS template for overlap detection: {e}")
-
-    duration = get_wav_duration(file)
-    
-    # We add 0.5s to the duration to account for transmission time + Pepper's buffer
-    state.robot_speak_end_time = time.time() + duration + 0.5
-
-    _send_tts_to_pepper(file)
+    state.robot_tts_pcm_16k = None
+    state.robot_is_speaking = True
+    state.robot_ignore_vad_until = time.time() + 1.2
+    state.robot_tts_start_time = time.time()
 
     try:
-        os.remove(file)
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            if version is not None and version != state.current_version:
+                print("Discarding speech (outdated while waiting to start): {}".format(text))
+                return
+
+            try:
+                _start_stream_playback(stream_url)
+                print("Started streamed TTS playback: '{}'".format(stream_url))
+                return
+            except requests.HTTPError as exception:
+                status_code = exception.response.status_code if exception.response else None
+                if status_code != 409 or attempt == max_attempts - 1:
+                    raise
+
+                # Pepper still speaking; wait for playback-ended and retry.
+                time.sleep(0.25)
     except Exception as exception:
-        print("Could not delete temp file:", exception)
-
-
-def _send_tts_to_pepper(sound_file):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((PEPPER_IP, PEPPER_PORT))
-
-    file = open(sound_file, "rb")
-    try:
-        data = file.read(4096)
-        while data:
-            sock.send(data)
-            data = file.read(4096)
-    finally:
-        file.close()
-
-    sock.close()
-    print("Sent TTS to Pepper: '{}'".format(sound_file))
+        state.robot_is_speaking = False
+        state.robot_ignore_vad_until = 0.0
+        print("Failed to start streamed playback: {}".format(exception))

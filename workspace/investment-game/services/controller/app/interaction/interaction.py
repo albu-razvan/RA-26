@@ -12,7 +12,7 @@ PEPPER_ANIMATE_URL = "http://pepper:8080/animate"
 PEPPER_STATE_URL = "http://pepper:8080/set-state"
 
 
-def _set_pepper_state(state: Literal["processing", "idle"]):
+def _set_pepper_state(state: Literal["processing", "idle", "speaking", "listening"]):
     try:
         requests.post(PEPPER_STATE_URL, json={"state": state}, timeout=1)
     except Exception:
@@ -76,7 +76,9 @@ def handle_speech(input_text, game_state):
 
     _handle_movement(response["movement"])
 
-    _set_pepper_state("idle")
+    if not response.get("text"):
+        _set_pepper_state("idle")
+
     return response["text"]
 
 
@@ -104,6 +106,8 @@ def handle_game_event(event, game_state):
 
     _handle_movement(response["movement"])
 
+    speech_sent = False
+
     try:
         requests.post(
             SPEECH_API_URL,
@@ -113,7 +117,9 @@ def handle_game_event(event, game_state):
             },
             timeout=5,
         )
+        speech_sent = bool(response.get("text", ""))
     except Exception as exception:
         print(str(exception))
 
-    _set_pepper_state("idle")
+    if not speech_sent:
+        _set_pepper_state("idle")

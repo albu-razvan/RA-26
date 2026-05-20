@@ -1,5 +1,6 @@
 import game
 import interaction
+from logger import log_conversation
 
 from flask import Flask, request, jsonify
 from werkzeug.exceptions import HTTPException
@@ -56,6 +57,24 @@ def api_status():
                 "state": state.get("state", "GAME_NOT_STARTED"),
             }
         )
+    except Exception as exception:
+        return jsonify({"error": str(exception)}), 500
+
+
+@app.route("/log-system-event", methods=["POST"])
+def api_log_system_event():
+    try:
+        data = request.get_json() or {}
+        event_type = data.get("type", "SYSTEM_EVENT")
+        text = data.get("text", "")
+
+        game_state = game.get_state()
+        player_id = game_state.get("player_id")
+
+        if player_id:
+            log_conversation(player_id, "System ({})".format(event_type), text=text)
+
+        return jsonify({"status": "ok"})
     except Exception as exception:
         return jsonify({"error": str(exception)}), 500
 
