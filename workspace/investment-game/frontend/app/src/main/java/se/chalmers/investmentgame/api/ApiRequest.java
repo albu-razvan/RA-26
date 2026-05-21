@@ -119,10 +119,12 @@ public class ApiRequest {
             if (statusCode >= 200 && statusCode < 300) {
                 T data = GSON.fromJson(response.toString(), responseClass);
 
-                try {
-                    Thread.sleep(REQUEST_ARTIFICIAL_DELAY);
-                } catch (InterruptedException exception) {
-                    Log.e(TAG, "request: ", exception);
+                if (shouldApplyArtificialDelay(method, urlString)) {
+                    try {
+                        Thread.sleep(REQUEST_ARTIFICIAL_DELAY);
+                    } catch (InterruptedException exception) {
+                        Log.e(TAG, "request: ", exception);
+                    }
                 }
 
                 return ApiResult.success(data, statusCode);
@@ -151,5 +153,13 @@ public class ApiRequest {
                 cleanupRunnable.run();
             }
         }
+    }
+
+    private static boolean shouldApplyArtificialDelay(Method method, String url) {
+        if (method != Method.POST) {
+            return false;
+        }
+
+        return "/start-game".equals(url) || "/invest".equals(url);
     }
 }

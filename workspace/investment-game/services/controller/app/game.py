@@ -1,6 +1,7 @@
 import threading
 import random
 import copy
+import os
 import ulid
 
 from logger import log_game_observation
@@ -11,11 +12,51 @@ from flask import jsonify
 _game = None
 _player_id = str(ulid.new())
 _state_version = 0
-# _condition = random.choice(["LLM", "Algorithmic"])
-_condition = "LLM"
+_games_played = 0
+
+_CONTROL_SEQUENCE = ["LLM", "Algorithmic"]
+_TRUST_SEQUENCE = ["trustworthy", "untrustworthy"]
+
+
+def _parse_initial_control(value):
+    normalized = str(value or "LLM").strip().upper()
+    if normalized in ["ALG", "ALGORITHM", "ALGORITHMIC"]:
+        return "Algorithmic"
+
+    return "LLM"
+
+
+def _parse_initial_trust(value):
+    normalized = str(value or "T").strip().upper()
+    if normalized in ["U", "UNTRUSTWORTHY", "UNTRUSTED"]:
+        return "untrustworthy"
+
+    return "trustworthy"
+
+
+def _parse_positive_int(value, default):
+    try:
+        parsed = int(value)
+        return parsed if parsed > 0 else default
+    except Exception:
+        return default
+
+
+_initial_condition = _parse_initial_control(os.environ.get("ROBOT_CONTROL_TYPE", "LLM"))
+_initial_robot_type = _parse_initial_trust(os.environ.get("TRUSTWORTHINESS", "T"))
+_participant_id = os.environ.get("PARTICIPANT_ID")
+_game_limit = _parse_positive_int(
+    os.environ.get("PARTICIPANT_GAME_LIMIT", os.environ.get("GAME_LIMIT", "2")),
+    2,
+)
+
+_condition = _initial_condition
 
 ROUND_BUDGET = 10
-MAX_ROUNDS = 3
+MAX_ROUNDS = _parse_positive_int(
+    os.environ.get("GAME_ROUNDS", os.environ.get("MAX_ROUNDS_PER_GAME", "3")),
+    3,
+)
 
 TRUSTWORTHY_MIN_MULTIPLIER = 1.2
 TRUSTWORTHY_MAX_MULTIPLIER = 2.4
@@ -30,7 +71,7 @@ def _generate_return(investment, robot_type):
     global _player_id
 
     if investment == 0:
-        return 0
+        return 0, 0, 0
 
     if robot_type == "trustworthy":
         min_multiplier = TRUSTWORTHY_MIN_MULTIPLIER
@@ -55,7 +96,12 @@ def _generate_return(investment, robot_type):
 
 
 def get_state():
-    global _game, _player_id, _condition, _state_version
+    global _game, _player_id, _condition, _state_version, _games_played
+
+    games_remaining = max(0, _game_limit - _games_played)
+    has_next_game = games_remaining > 0
+
+    next_condition, next_robot_type = _get_game_parameters(_games_played)
 
     if _game is None:
         state = "GAME_NOT_STARTED"
@@ -71,6 +117,13 @@ def get_state():
             "condition": _condition,
             "state": state,
             "state_version": _state_version,
+            "games_played": _games_played,
+            "game_limit": _game_limit,
+            "games_remaining": games_remaining,
+            "has_next_game": has_next_game,
+            "participant_complete": not has_next_game,
+            "next_condition": next_condition,
+            "next_trustworthiness": next_robot_type,
         }
 
     return {
@@ -79,18 +132,43 @@ def get_state():
         "condition": _condition,
         "state": state,
         "state_version": _state_version,
+        "games_played": _games_played,
+        "game_limit": _game_limit,
+        "games_remaining": games_remaining,
+        "has_next_game": has_next_game,
+        "participant_complete": not has_next_game,
+        "current_trustworthiness": _game.get("robot_type"),
+        "next_condition": next_condition,
+        "next_trustworthiness": next_robot_type,
     }
+
+
+def _get_game_parameters(game_index):
+    control_start_idx = 0 if _initial_condition == "LLM" else 1
+    trust_start_idx = 0 if _initial_robot_type == "trustworthy" else 1
+
+    control_idx = (control_start_idx + (game_index % 2)) % 2
+    trust_idx = (trust_start_idx + ((game_index // 2) % 2)) % 2
+
+    return _CONTROL_SEQUENCE[control_idx], _TRUST_SEQUENCE[trust_idx]
 
 
 def start_game():
     global _game, _player_id, _condition, _state_version
 
-    if _game is not None:
-        _player_id = str(ulid.new())
-        _condition = random.choice(["LLM", "Algorithmic"])
+    if _game is not None and _game.get("round", 0) < _game.get("max_rounds", MAX_ROUNDS):
+        return jsonify({"error": "A game is already in progress"}), 400
+
+    if _games_played >= _game_limit:
+        return jsonify({"error": "Participant has completed all assigned games"}), 400
+
+    _condition, robot_type = _get_game_parameters(_games_played)
+
+    if _games_played == 0 and _participant_id:
+        _player_id = _participant_id
 
     _game = {
-        "robot_type": random.choice(["trustworthy", "untrustworthy"]),
+        "robot_type": robot_type,
         "bank": 0,
         "round": 0,
         "max_rounds": MAX_ROUNDS,
@@ -110,17 +188,21 @@ def start_game():
             "bank": 0,
             "round_budget": ROUND_BUDGET,
             "max_rounds": MAX_ROUNDS,
+            "condition": _condition,
+            "trustworthiness": robot_type,
+            "games_played": _games_played,
+            "games_remaining": max(0, _game_limit - _games_played),
+            "game_limit": _game_limit,
         }
     )
 
 
 def reset_game():
-    global _game, _player_id, _state_version
+    global _game, _state_version
 
     stop_output()
 
     _game = None
-    _player_id = str(ulid.new())
     _state_version += 1
 
     return jsonify({"status": "ok"})
@@ -131,7 +213,7 @@ def _reaction(event, state):
 
 
 def invest(request):
-    global _game, _condition, _state_version
+    global _game, _condition, _state_version, _games_played
 
     if _game is None:
         return jsonify({"error": "No active game"}), 404
@@ -182,6 +264,7 @@ def invest(request):
     )
 
     if _game["round"] >= _game["max_rounds"]:
+        _games_played += 1
         event_data = {
             "state": "GAME_FINISHED",
             "investment_from_human": investment,

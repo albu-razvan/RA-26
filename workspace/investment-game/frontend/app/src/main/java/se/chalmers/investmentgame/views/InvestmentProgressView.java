@@ -163,15 +163,6 @@ public class InvestmentProgressView extends View {
         String returnedValue = String.valueOf(returnedAmount);
         float bubbleRadius = dp(12);
 
-        float investedBlockHalf = Math.max(
-                labelPaint.measureText(investedLabel),
-                bubbleRadius * 2f
-        ) / 2f;
-        float returnedBlockHalf = Math.max(
-                labelPaint.measureText(returnedLabel),
-                bubbleRadius * 2f
-        ) / 2f;
-
         float investedX = centerX;
         float returnedX;
         if (currentProgress > 0f) {
@@ -182,41 +173,59 @@ public class InvestmentProgressView extends View {
             returnedX = centerX;
         }
 
-        float minGap = dp(8);
-        float currentGap = Math.abs(returnedX - investedX);
-        float requiredGap = Math.max(investedBlockHalf + returnedBlockHalf + minGap, (bubbleRadius * 2f) + dp(8));
+        float minBubbleX = horizontalPadding + bubbleRadius;
+        float maxBubbleX = width - horizontalPadding - bubbleRadius;
+        returnedX = clamp(returnedX, minBubbleX, maxBubbleX);
 
-        if (currentGap < requiredGap) {
-            float offset = (requiredGap - currentGap) / 2f;
+        float requiredBubbleGap = (bubbleRadius * 2f) + dp(6);
+        float bubbleGap = Math.abs(returnedX - investedX);
+        if (bubbleGap < requiredBubbleGap) {
             if (currentProgress >= 0f) {
-                investedX -= offset;
-                returnedX += offset;
+                returnedX = investedX + requiredBubbleGap;
             } else {
-                investedX += offset;
-                returnedX -= offset;
+                returnedX = investedX - requiredBubbleGap;
+            }
+            returnedX = clamp(returnedX, minBubbleX, maxBubbleX);
+
+            bubbleGap = Math.abs(returnedX - investedX);
+            if (bubbleGap < requiredBubbleGap) {
+                float correction = (requiredBubbleGap - bubbleGap) / 2f;
+                if (currentProgress >= 0f) {
+                    investedX -= correction;
+                    returnedX += correction;
+                } else {
+                    investedX += correction;
+                    returnedX -= correction;
+                }
+                investedX = clamp(investedX, minBubbleX, maxBubbleX);
+                returnedX = clamp(returnedX, minBubbleX, maxBubbleX);
             }
         }
 
-        float minInvestedX = horizontalPadding + Math.max(investedBlockHalf, bubbleRadius);
-        float maxInvestedX = width - horizontalPadding - Math.max(investedBlockHalf, bubbleRadius);
-        float minReturnedX = horizontalPadding + Math.max(returnedBlockHalf, bubbleRadius);
-        float maxReturnedX = width - horizontalPadding - Math.max(returnedBlockHalf, bubbleRadius);
+        float investedLabelHalf = labelPaint.measureText(investedLabel) / 2f;
+        float returnedLabelHalf = labelPaint.measureText(returnedLabel) / 2f;
 
-        investedX = clamp(investedX, minInvestedX, maxInvestedX);
-        returnedX = clamp(returnedX, minReturnedX, maxReturnedX);
+        float investedLabelX = clamp(investedX, horizontalPadding + investedLabelHalf, width - horizontalPadding - investedLabelHalf);
+        float returnedLabelX = clamp(returnedX, horizontalPadding + returnedLabelHalf, width - horizontalPadding - returnedLabelHalf);
 
-        if (Math.abs(returnedX - investedX) < requiredGap) {
+        float requiredLabelGap = investedLabelHalf + returnedLabelHalf + dp(6);
+        float labelGap = Math.abs(returnedLabelX - investedLabelX);
+        if (labelGap < requiredLabelGap) {
+            float correction = (requiredLabelGap - labelGap) / 2f;
             if (currentProgress >= 0f) {
-                investedX = clamp(centerX - dp(42), minInvestedX, maxInvestedX);
-                returnedX = clamp(width - horizontalPadding - Math.max(returnedBlockHalf, bubbleRadius), minReturnedX, maxReturnedX);
+                investedLabelX -= correction;
+                returnedLabelX += correction;
             } else {
-                investedX = clamp(centerX + dp(42), minInvestedX, maxInvestedX);
-                returnedX = clamp(horizontalPadding + Math.max(returnedBlockHalf, bubbleRadius), minReturnedX, maxReturnedX);
+                investedLabelX += correction;
+                returnedLabelX -= correction;
             }
+
+            investedLabelX = clamp(investedLabelX, horizontalPadding + investedLabelHalf, width - horizontalPadding - investedLabelHalf);
+            returnedLabelX = clamp(returnedLabelX, horizontalPadding + returnedLabelHalf, width - horizontalPadding - returnedLabelHalf);
         }
 
-        canvas.drawText(investedLabel, investedX, labelY, labelPaint);
-        canvas.drawText(returnedLabel, returnedX, labelY, labelPaint);
+        canvas.drawText(investedLabel, investedLabelX, labelY, labelPaint);
+        canvas.drawText(returnedLabel, returnedLabelX, labelY, labelPaint);
 
         drawValueBubble(canvas, investedX, centerY, bubbleRadius, investedValue);
         drawValueBubble(canvas, returnedX, centerY, bubbleRadius, returnedValue);

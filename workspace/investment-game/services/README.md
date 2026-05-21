@@ -33,8 +33,14 @@ Required `.env` values are:
 Optional `.env` values:
 
 - `AZURE_OPENAI_API_VERSION` (defaults to `2025-03-01-preview` in code)
-- `STT_MODEL` (defaults to `base.en`)
-- `SILENCE_LIMIT_FRAMES` (defaults to `55`)
+
+Experiment confguration:
+
+- `ROBOT_CONTROL_TYPE` (`LLM` or `ALG`, default `LLM`; these values will alternate every **1** game)
+- `TRUSTWORTHINESS` (`T` or `U`, default `T`; these values will alternate every **2** games)
+- `PARTICIPANT_GAME_LIMIT` (default `2`)
+- `PARTICIPANT_ID` (fixed participant id; if omitted, it is generated at runtime)
+- `GAME_ROUNDS` (rounds per game, default `3`)
 
 This will:
 

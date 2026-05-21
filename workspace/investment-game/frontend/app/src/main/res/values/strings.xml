@@ -7,9 +7,15 @@
     <string name="title_start">Investment Game</string>
     <string name="subtitle_start">Tap start when both tablet and robot are ready.</string>
     <string name="button_start">Start Game</string>
+    <string name="button_start_next">Start Next Game</string>
+    <string name="button_finish">Finish</string>
     <string name="button_next">Next Round</string>
     <string name="button_back_to_start">Back to Start</string>
     <string name="final_bank">FINAL BANK</string>
     <string name="game_over">GAME OVER</string>
     <string name="tap_to_invest">TAP AN AMOUNT TO INVEST</string>
+    <string name="main_status_complete">Thank you for participating. You have completed all games.</string>
+    <string name="questionnaire_prompt">Please fill in the questionnaire before continuing.</string>
+    <string name="questionnaire_next_game">When done, tap the button below to start the next game.</string>
+    <string name="questionnaire_last_game">Thank you for participating. You have completed all assigned games.</string>
 </resources>

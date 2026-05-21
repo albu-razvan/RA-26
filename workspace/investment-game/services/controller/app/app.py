@@ -55,6 +55,15 @@ def api_status():
             {
                 "state_version": state.get("state_version", 0),
                 "state": state.get("state", "GAME_NOT_STARTED"),
+                "games_played": state.get("games_played", 0),
+                "games_remaining": state.get("games_remaining", 0),
+                "game_limit": state.get("game_limit", 0),
+                "has_next_game": state.get("has_next_game", False),
+                "participant_complete": state.get("participant_complete", False),
+                "condition": state.get("condition"),
+                "current_trustworthiness": state.get("current_trustworthiness"),
+                "next_condition": state.get("next_condition"),
+                "next_trustworthiness": state.get("next_trustworthiness"),
             }
         )
     except Exception as exception:
