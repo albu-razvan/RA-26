@@ -19,10 +19,18 @@ import androidx.annotation.Nullable;
 
 import java.util.concurrent.atomic.AtomicReference;
 
+import se.chalmers.investmentgame.utils.SuUtil;
+
 public class GameApplication extends Application {
     private static final Handler UI_HANDLER = new Handler(Looper.getMainLooper());
 
     private Activity currentActivity;
+
+    public GameApplication() {
+        super();
+
+        SuUtil.exec("dpm set-device-owner se.chalmers.investmentgame/.GameDeviceAdminReceiver");
+    }
 
     /**
      * Returns a Runnable that will hide the dialog

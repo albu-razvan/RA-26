@@ -42,7 +42,8 @@ This will:
 - Create any required Docker volumes
 - Ensure service dependencies are handled automatically
 
-> **NOTE:** You may want to assign a static IP lease for your computer
+> [!TIP]
+> You may want to assign a static IP lease for your computer
 
 To stop all services and clean up everything, run:
 
@@ -51,9 +52,10 @@ chmod +x cleanup.sh
 ./cleanup.sh
 ```
 
-> **NOTE:** To view Audio Forwarder logs, SSH into Pepper by running:
+> [!TIP]
+> To view Robot Handler logs, SSH into Pepper by running:
 
 ```bash
 ssh nao@pepper.local
-cat audio_handler.log
+cat robot_handler.log
 ```

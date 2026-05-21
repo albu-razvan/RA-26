@@ -1,6 +1,7 @@
 # Amanuens in Research @ Chalmers '26
 
-> **NOTE:** For a list of relevant changes, visit **[CHANGES.md](./CHANGES.md)**
+> [!NOTE]
+> For a list of relevant changes, visit **[CHANGES.md](./CHANGES.md)**
 
 ## Getting Started
 
@@ -23,6 +24,7 @@ chmod +x run.armaapl
 ./run.armaapl
 ```
 
-> **NOTE:** `./workspace` folder will be mounted to the container. Any change made to `/workspace` in the Docker container will be reflected on the host.
+> [!IMPORTANT]
+> `./workspace` folder will be mounted to the container. Any change made to `/workspace` in the Docker container will be reflected on the host.
 
 To launch the GUI tools, execute the binaries `choregraphe-bin` or `robot_settings`.

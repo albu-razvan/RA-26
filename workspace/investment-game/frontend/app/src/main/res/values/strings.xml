@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Investment Game</string>
+    <string name="title_setup">Connect To Game Server</string>
+    <string name="subtitle_setup">Enter the computer IP to start.</string>
+    <string name="hint_ip">Computer IP address</string>
+    <string name="button_connect">Connect</string>
+    <string name="title_start">Investment Game</string>
+    <string name="subtitle_start">Tap start when both tablet and robot are ready.</string>
+    <string name="button_start">Start Game</string>
+    <string name="button_next">Next Round</string>
+    <string name="button_back_to_start">Back to Start</string>
+    <string name="final_bank">FINAL BANK</string>
+    <string name="game_over">GAME OVER</string>
+    <string name="tap_to_invest">TAP AN AMOUNT TO INVEST</string>
 </resources>

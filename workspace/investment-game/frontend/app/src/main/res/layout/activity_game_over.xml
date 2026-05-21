@@ -11,9 +11,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:letterSpacing="0.2"
-        android:text="GAME OVER"
-        android:textColor="#455A64"
-        android:textSize="24sp"
+        android:text="@string/game_over"
+        android:textColor="@color/text_primary"
+        android:textSize="30sp"
         android:textStyle="bold" />
 
     <LinearLayout
@@ -21,15 +21,15 @@
         android:layout_height="200dp"
         android:layout_marginTop="32dp"
         android:background="@drawable/glass_pane"
-        android:elevation="12dp"
         android:gravity="center"
         android:orientation="vertical">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:alpha="0.6"
-            android:text="FINAL BANK"
+            android:alpha="0.75"
+            android:text="@string/final_bank"
+            android:textColor="@color/text_muted"
             android:textSize="12sp"
             android:textStyle="bold" />
 
@@ -37,16 +37,24 @@
             android:id="@+id/bank"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#2E7D32"
+            android:textColor="@color/accent_green"
             android:textSize="48sp"
             android:textStyle="bold" />
     </LinearLayout>
 
     <Button
         android:id="@+id/finish_game_over"
-        android:layout_width="wrap_content"
+        android:layout_width="260dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
-        android:text="Back to Start" />
+        android:background="@drawable/button_primary"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
+        android:stateListAnimator="@animator/button_press"
+        android:text="@string/button_back_to_start"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:textStyle="normal" />
 
 </LinearLayout>

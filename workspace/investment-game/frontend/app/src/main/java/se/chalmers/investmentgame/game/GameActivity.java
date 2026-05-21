@@ -21,8 +21,6 @@ public class GameActivity extends KioskActivity {
 
     private InvestmentProgressView investmentVisualization;
     private View investmentOptions;
-    private TextView invested;
-    private TextView returned;
     private Button nextRound;
     private TextView budget;
     private TextView round;
@@ -44,8 +42,6 @@ public class GameActivity extends KioskActivity {
         investmentVisualization = findViewById(R.id.investment_visualization);
         investmentOptions = findViewById(R.id.investment_options);
         RecyclerView recycler = findViewById(R.id.recycler);
-        invested = findViewById(R.id.invested);
-        returned = findViewById(R.id.returned);
         nextRound = findViewById(R.id.next);
         budget = findViewById(R.id.budget);
         round = findViewById(R.id.round);
@@ -84,12 +80,10 @@ public class GameActivity extends KioskActivity {
 
         if (invVal == -1 || retVal == -1) {
             investmentVisualization.setCurrentProgress(0f);
-            returned.setText("");
-            invested.setText("");
+            investmentVisualization.setRoundValues(-1, -1);
         } else {
             investmentVisualization.setCurrentProgress(getProgress(game, invVal, retVal));
-            invested.setText("Invested: " + invVal);
-            returned.setText("Returned: " + retVal);
+            investmentVisualization.setRoundValues(invVal, retVal);
         }
 
         if (game.getRound() == 0) {

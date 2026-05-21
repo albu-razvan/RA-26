@@ -3,19 +3,44 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/main_background"
-    android:gravity="center">
+    android:padding="30dp">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="48dp"
+        android:text="@string/title_start"
+        android:textColor="@color/text_primary"
+        android:textSize="38sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/title"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp"
+        android:text="@string/subtitle_start"
+        android:textColor="@color/text_secondary"
+        android:textSize="18sp" />
 
     <Button
         android:id="@+id/start"
-        android:layout_width="200dp"
-        android:layout_height="60dp"
-        android:background="@drawable/glass_pane"
-        android:elevation="8dp"
+        android:layout_width="260dp"
+        android:layout_height="68dp"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="36dp"
+        android:background="@drawable/button_primary"
+        android:paddingTop="10dp"
+        android:paddingBottom="10dp"
         android:stateListAnimator="@animator/button_press"
-        android:text="Start Game"
-        android:textAllCaps="true"
-        android:textColor="#455A64"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:text="@string/button_start"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="22sp"
+        android:textStyle="normal" />
 
 </RelativeLayout>

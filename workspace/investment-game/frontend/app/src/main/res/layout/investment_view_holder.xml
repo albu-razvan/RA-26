@@ -10,10 +10,9 @@
         android:layout_width="55dp"
         android:layout_height="55dp"
         android:background="@drawable/glass_token"
-        android:elevation="6dp"
         android:gravity="center"
         android:stateListAnimator="@animator/button_press"
-        android:textColor="#37474F"
+        android:textColor="@color/text_primary"
         android:textSize="20sp"
         android:textStyle="bold" />
 

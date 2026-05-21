@@ -8,7 +8,8 @@ The latest version of the game should already be loaded on Pepper's tablet. If s
 
 If the application is not installed, you will need to sideload it.
 
-> **NOTE:** The tablet sets the animation scale on reboot to `0`. Make sure all scale parameters are set to `1`. Go to _`Settings > Developer options`_ and look for:
+> [!NOTE]
+> The tablet sets the animation scale on reboot to `0`. Make sure all scale parameters are set to `1`. Go to _`Settings > Developer options`_ and look for:
 >
 > - _Window animation scale_
 > - _Transition animation scale_
@@ -19,12 +20,14 @@ If the application is not installed, you will need to sideload it.
 Before installing the app, make sure you have the following:
 
 - **Android Studio (recommended)** to build the application
-- **ADB (Android Debug Bridge**) installed on your machine
+- **ADB (Android Debug Bridge)** installed on your machine
 - Pepper’s tablet connected to the same Wi-Fi network as your computer
 
-> **NOTE:** Installing Android Studio first should also install platform-tools (ADB) as well, so you can just skip the second step.
+> [!TIP]
+> Installing Android Studio first should also install platform-tools (ADB) as well, so you can just skip the second step.
 
-> **NOTE:** The tablet does not behave well with direct deployment from Android Studio. You must use Wi-Fi ADB and sideload the APK manually.
+> [!TIP]
+> The tablet does not behave well with direct deployment from Android Studio. You must use Wi-Fi ADB and sideload the APK manually.
 
 ### Installation Guide
 
@@ -84,6 +87,9 @@ adb install -r path/to/app-debug.apk
 
 #### 5. Make Application a Device Admin
 
+> [!NOTE]
+> The app attempts to do this automatically. However, it's worth double checking that it succeeded.
+
 For the Kiosk mode to persist, you need to make the app a device owner:
 
 ```bash
@@ -94,12 +100,16 @@ adb shell dpm set-device-owner se.chalmers.investmentgame/.GameDeviceAdminReceiv
 
 You can find the application in the app drawer. Before conducting an experiment, start the app, follow the initial configuration prompts and you're good to go!
 
-> **NOTE:** Since the app enables Kiosk mode as soon as the experiment starts, you cannot leave the application.
+> [!NOTE]
+> It is normal for the app to request superuser (SU) access.
 
-To exit Kiosk mode, run on a computer connected to ADB:
-
-```bash
-adb shell am broadcast -a se.chalmers.investmentgame.EXIT_KIOSK
-```
-
-You can also long press on the root view of a KioskActivity for 10 seconds to exit Kiosk mode.
+> [!NOTE]
+> The app automatically enters Kiosk mode when the experiment starts. In Kiosk mode, users cannot leave the foreground application, which is useful for running controlled participant sessions. However, if something goes wrong, recovery may be required.
+>
+> To exit Kiosk mode, run the following command on a computer connected via ADB:
+>
+> ```bash
+> adb shell am broadcast -a se.chalmers.investmentgame.EXIT_KIOSK
+> ```
+>
+> Alternatively, you can exit Kiosk mode by long-pressing the root view of a `KioskActivity` for 10 seconds.

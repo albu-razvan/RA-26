@@ -44,6 +44,7 @@ public class SetupActivity extends Activity {
         setContentView(R.layout.activity_setup);
 
         input = findViewById(R.id.ip);
+        input.setSelection(input.getText().length());
         Button button = findViewById(R.id.connect);
 
         button.setOnClickListener(v -> attemptConnection());
