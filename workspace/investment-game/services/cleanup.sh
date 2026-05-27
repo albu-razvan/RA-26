@@ -9,4 +9,4 @@ chmod +x ./pepper/stop.sh
 
 # Local services
 echo "Stopping services..."
-docker compose down
+sudo docker compose down

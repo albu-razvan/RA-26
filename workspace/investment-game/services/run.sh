@@ -62,4 +62,4 @@ chmod +x ./pepper/deploy.sh
 
 # Local services
 echo "Starting services..."
-docker-compose up
+sudo docker compose up

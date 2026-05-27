@@ -6,6 +6,11 @@ if [[ -z "${PEPPER_PASS:-}" ]]; then
     exit 1
 fi
 
+if [[ -z "${ROBOT_IP:-}" ]]; then
+    echo "Error: ROBOT_IP is not set. Please export PEPPER_PASS first."
+    exit 1
+fi
+
 if [[ -z "${COMPUTER_IP:-}" ]]; then
     echo "Error: COMPUTER_IP is not set. Please export COMPUTER_IP first."
     exit 1
@@ -14,7 +19,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 PEPPER_USER="nao"
-PEPPER_HOST="pepper.local"
+PEPPER_HOST=${ROBOT_IP}
 PEPPER_PATH="/home/nao"
 
 LOCAL_SCRIPT="$SCRIPT_DIR/robot_handler.py"

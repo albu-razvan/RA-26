@@ -3,6 +3,9 @@
 > [!NOTE]
 > For a list of relevant changes, visit **[CHANGES.md](./CHANGES.md)**
 
+> [!IMPORTANT]
+> This repository has some pretty *big* files that require [Git Large File Storage](https://docs.github.com/en/repositories/working-with-files/managing-large-files/installing-git-large-file-storage) to be set up.Some of the scripts may fail otherwise.
+
 ## Getting Started
 
 Pepper requires **Python 2.7** and **x86 dependencies** for its SDK. Because I hate setting up Rosetta on my M1 Mac, here's a **Docker** alternative ¯\\\_(ツ)\_/¯
