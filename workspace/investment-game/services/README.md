@@ -34,6 +34,12 @@ Optional `.env` values:
 
 - `AZURE_OPENAI_API_VERSION` (defaults to `2025-03-01-preview` in code)
 
+Piper values:
+
+- `LENGTH_SCALE` (defaults to `0.72`) - tweak this to make Pepper speak faster or slower
+- `NOISE_SCALE` (defualts to `0.9`)
+- `NOISE_W_SCALE` (defaults to `0.8`)
+
 Experiment confguration:
 
 - `ROBOT_CONTROL_TYPE` (`LLM` or `ALG`, default `LLM`; these values will alternate every **1** game)

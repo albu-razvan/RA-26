@@ -588,7 +588,7 @@ class PepperAnimation:
             0.12,      # HeadYaw
             0.14,      # HeadPitch
 
-            -0.13,     # Lean forward
+            -0.09,     # Lean forward
             -0.05,     # HipRoll
             0.09,      # Slight knee bend
 
@@ -658,7 +658,7 @@ class PepperAnimation:
         # Subtle lean toward the user
         self.motion.angleInterpolationWithSpeed(
             ["HipPitch", "HipRoll"],
-            [-0.2, 0.03],
+            [-0.12, 0.03],
             0.05,
         )
 

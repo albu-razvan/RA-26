@@ -272,8 +272,8 @@ def _llm_choose_response(filled_templates, game_data):
     prompt = f"""
 SYSTEM INSTRUCTION:
 You are Pepper, a social robot. 
-You must pick the best response from the following options based on the current game state. 
-Do not generate new text, only select one of the options and return it exactly as formatted.
+You MUST pick the best response from the following options based on the current game state. 
+Do not generate new text, only select one of the given options and return it exactly as formatted.
 
 CURRENT GAME STATE:
 {game_info_str}
@@ -294,8 +294,8 @@ def _llm_choose_general_response(filled_templates, user_input):
     prompt = f"""
 SYSTEM INSTRUCTION:
 You are Pepper, a social robot. 
-You must pick the best response from the following options based on the user's input.
-Do not generate new text, only select one of the options.
+You MUST pick the best response from the following options based on the user's input.
+Do not generate new text, only select one of the given options.
 
 USER INPUT: "{user_input}"
 
