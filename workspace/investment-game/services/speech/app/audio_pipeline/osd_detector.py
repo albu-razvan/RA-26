@@ -1,4 +1,5 @@
 import time
+import os
 
 import noisereduce as nr
 import numpy as np
@@ -29,6 +30,13 @@ class OSDDetector:
             "pyannote/overlapped-speech-detection",
             use_auth_token=hf_token,
         )
+        try:
+            torch.set_num_threads(int(os.environ.get("TORCH_NUM_THREADS", "1")))
+            torch.set_num_interop_threads(
+                int(os.environ.get("TORCH_NUM_INTEROP_THREADS", "1"))
+            )
+        except Exception as exception:
+            print("[OSD] Torch thread config skipped: {}".format(exception))
         self.pipeline.to(torch.device("cpu"))
         print("[OSD] Pipeline loaded")
 

@@ -20,6 +20,13 @@ services:
       - "9700:9700"
       - "9701:9701"
       - "9702:9702"
+    environment:
+      - OMP_NUM_THREADS=3
+      - MKL_NUM_THREADS=2
+      - OPENBLAS_NUM_THREADS=2
+      - NUMEXPR_NUM_THREADS=1
+      - TORCH_NUM_THREADS=1
+      - TORCH_NUM_INTEROP_THREADS=1
     volumes:
       - ./speech/app/:/app:ro
       - ./speech/audio_debug:/tmp/audio_debug
@@ -47,5 +54,9 @@ services:
       - PIPER_MODEL_ROOT=/models
       - PIPER_PATH=/usr/local/bin/piper
       - JACK_NO_START_SERVER=1
+      - OMP_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
+      - OPENBLAS_NUM_THREADS=1
+      - NUMEXPR_NUM_THREADS=1
     volumes:
       - ./piper/models:/models

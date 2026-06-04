@@ -36,7 +36,7 @@ def _wait_for_turn_to_speak(text, version):
                 return False
 
             # Safety valve in case playback-ended/interrupt callback is missed.
-            if time.time() - wait_started > 25:
+            if time.time() - wait_started > 10:
                 print("Queued speech timed out waiting for turn: '{}'".format(text))
                 return False
 

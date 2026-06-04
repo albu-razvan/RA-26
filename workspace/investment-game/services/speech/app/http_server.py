@@ -1,5 +1,6 @@
 import uvicorn
 import time
+import threading
 import state
 import requests
 
@@ -45,6 +46,14 @@ def _log_interrupt_to_controller(cleared_queue_count):
         print("Could not log speech interrupt to controller: {}".format(exception))
 
 
+def _log_interrupt_to_controller_async(cleared_queue_count):
+    threading.Thread(
+        target=_log_interrupt_to_controller,
+        args=(cleared_queue_count,),
+        daemon=True,
+    ).start()
+
+
 @app.post("/interrupt")
 def interrupt_api():
     cleared_queue_count = state.queued_speech_waiters
@@ -56,7 +65,7 @@ def interrupt_api():
     state.robot_tts_start_time = 0.0
     state.robot_tts_pcm_16k = None
 
-    _log_interrupt_to_controller(cleared_queue_count)
+    _log_interrupt_to_controller_async(cleared_queue_count)
 
     return {"status": "ok"}
 

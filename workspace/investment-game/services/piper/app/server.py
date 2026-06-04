@@ -16,9 +16,21 @@ LENGTH_SCALE = os.environ.get("LENGTH_SCALE", "0.72")
 NOISE_SCALE = os.environ.get("NOISE_SCALE", "0.9")
 NOISE_W_SCALE = os.environ.get("NOISE_W_SCALE", "0.8")
 
+
+def _env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 app = FastAPI()
 
-_stream_lock = threading.Lock()
+MAX_CONCURRENT_SYNTHESIS = int(os.environ.get("PIPER_MAX_CONCURRENT_SYNTHESIS", "1"))
+SYNTHESIS_SLOT_TIMEOUT_SECONDS = float(
+    os.environ.get("PIPER_SYNTHESIS_SLOT_TIMEOUT_SECONDS", "20")
+)
+PIPER_LOG_STDERR = _env_flag("PIPER_LOG_STDERR", default=False)
+_synthesis_slots = threading.BoundedSemaphore(value=max(1, MAX_CONCURRENT_SYNTHESIS))
 
 
 class StreamRequest(BaseModel):
@@ -118,18 +130,24 @@ def stream_tts(request: StreamRequest):
     sample_rate = _read_sample_rate(config_file)
     channels = 1
 
-    if not _stream_lock.acquire(False):
-        raise HTTPException(status_code=409, detail="TTS engine is already synthesizing")
+    acquired = _synthesis_slots.acquire(timeout=SYNTHESIS_SLOT_TIMEOUT_SECONDS)
+    if not acquired:
+        raise HTTPException(
+            status_code=503,
+            detail="TTS engine is busy. Could not reserve synthesis slot in time.",
+        )
 
     process_ref = {"proc": None}
 
     def output_generator():
         try:
+            stderr_target = subprocess.PIPE if PIPER_LOG_STDERR else subprocess.DEVNULL
             process = subprocess.Popen(
                 _build_piper_command(model_file, config_file),
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=stderr_target,
+                bufsize=0,
             )
             process_ref["proc"] = process
 
@@ -147,13 +165,15 @@ def stream_tts(request: StreamRequest):
 
             return_code = process.wait(timeout=5)
             if return_code != 0:
-                error_output = process.stderr.read().decode("utf-8", errors="replace")
+                error_output = ""
+                if process.stderr is not None:
+                    error_output = process.stderr.read().decode("utf-8", errors="replace")
                 print("Piper exited with non-zero code {}: {}".format(return_code, error_output))
         finally:
             process = process_ref.get("proc")
             if process is not None and process.poll() is None:
                 process.terminate()
 
-            _stream_lock.release()
+            _synthesis_slots.release()
 
     return StreamingResponse(output_generator(), media_type="audio/wav")

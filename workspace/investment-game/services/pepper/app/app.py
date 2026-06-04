@@ -13,6 +13,9 @@ PORT = 9559
 ROBOT_HANDLER_HOST = "127.0.0.1"
 ROBOT_HANDLER_CTRL_PORT = 9703
 SPEECH_API_URL = "http://speech:9701"
+SPEECH_NOTIFY_TIMEOUT_SECONDS = float(
+    os.environ.get("SPEECH_NOTIFY_TIMEOUT_SECONDS", "1.2")
+)
 
 TACTILE_KEYS = ["FrontTactilTouched", "MiddleTactilTouched", "RearTactilTouched"]
 TACTILE_POLL_SECONDS = 0.05
@@ -64,14 +67,20 @@ def _play_stream_worker(url, task_id):
 
 def _notify_speech_interrupt():
     try:
-        requests.post("{}/interrupt".format(SPEECH_API_URL), timeout=0.3)
+        requests.post(
+            "{}/interrupt".format(SPEECH_API_URL),
+            timeout=SPEECH_NOTIFY_TIMEOUT_SECONDS,
+        )
     except Exception as exception:
         print("Failed to notify speech service: {}".format(exception))
 
 
 def _notify_playback_ended():
     try:
-        requests.post("{}/playback-ended".format(SPEECH_API_URL), timeout=0.3)
+        requests.post(
+            "{}/playback-ended".format(SPEECH_API_URL),
+            timeout=SPEECH_NOTIFY_TIMEOUT_SECONDS,
+        )
     except Exception as exception:
         print("Failed to notify playback end: {}".format(exception))
 
@@ -108,7 +117,7 @@ def _head_touch_interrupt_loop():
                 last_interrupt_time = now
 
         last_touch_state = touched
-        threading.Event().wait(TACTILE_POLL_SECONDS)
+        time.sleep(TACTILE_POLL_SECONDS)
 
 
 @route("/animate", method="POST")

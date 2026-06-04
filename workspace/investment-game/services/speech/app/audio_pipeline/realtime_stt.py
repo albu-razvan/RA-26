@@ -1,6 +1,7 @@
 import collections
 import os
 import threading
+import time
 
 from RealtimeSTT import AudioToTextRecorder
 
@@ -14,7 +15,21 @@ class RealtimeSpeechTranscriber:
         self.lock = threading.Lock()
         self.stop_event = threading.Event()
         self.awaiting_final_text = False
-        self.finalization_timeout_s = 1.2
+        self.finalization_token = 0
+        self.block_new_until = 0.0
+        self.finalization_timeout_s = float(
+            os.environ.get("STT_FINALIZATION_TIMEOUT_SECONDS", "3.5")
+        )
+        self.finalization_grace_s = float(
+            os.environ.get("STT_FINALIZATION_GRACE_SECONDS", "2.0")
+        )
+        self.recovery_cooldown_s = float(
+            os.environ.get("STT_RECOVERY_COOLDOWN_SECONDS", "0.6")
+        )
+        self.reset_on_finalization_timeout = (
+            os.environ.get("STT_RESET_ON_FINALIZATION_TIMEOUT", "false").strip().lower()
+            in {"1", "true", "yes", "on"}
+        )
 
         self.recorder = self._build_recorder()
 
@@ -60,6 +75,7 @@ class RealtimeSpeechTranscriber:
                 state_version = self.pending_versions.popleft()
             else:
                 self.awaiting_final_text = False
+                self.finalization_token += 1
                 if transcript:
                     print(
                         "Recognized transcript without matching utterance. "
@@ -69,6 +85,7 @@ class RealtimeSpeechTranscriber:
                 return
 
             self.awaiting_final_text = False
+            self.finalization_token += 1
 
         if not transcript:
             print("Recognized empty transcript. Dropping utterance.")
@@ -83,6 +100,9 @@ class RealtimeSpeechTranscriber:
 
     def start_utterance(self, state_version):
         with self.lock:
+            if time.time() < self.block_new_until:
+                return False
+
             if self.awaiting_final_text:
                 return False
 
@@ -96,27 +116,48 @@ class RealtimeSpeechTranscriber:
                 self.pending_versions.pop()
 
             self.awaiting_final_text = False
+            self.finalization_token += 1
 
     def is_ready_for_new_utterance(self):
         with self.lock:
             return not self.awaiting_final_text
 
-    def _finalization_watchdog(self):
+    def _finalization_watchdog(self, token):
         self.stop_event.wait(self.finalization_timeout_s)
 
         if self.stop_event.is_set():
             return
 
         with self.lock:
-            if not self.awaiting_final_text:
+            if not self.awaiting_final_text or token != self.finalization_token:
+                return
+
+        print(
+            "RealtimeSTT finalization timeout. Waiting grace period of {}s.".format(
+                self.finalization_grace_s
+            )
+        )
+        trailing_silence = b"\x00\x00" * int(self.sample_rate * 1.0)
+        self.feed_audio(trailing_silence)
+
+        self.stop_event.wait(self.finalization_grace_s)
+        if self.stop_event.is_set():
+            return
+
+        with self.lock:
+            if not self.awaiting_final_text or token != self.finalization_token:
                 return
 
             self.awaiting_final_text = False
             if self.pending_versions:
                 self.pending_versions.popleft()
+            self.finalization_token += 1
+            self.block_new_until = time.time() + self.recovery_cooldown_s
 
-        print("RealtimeSTT finalization timeout. Resetting STT stream.")
-        self._reset_recorder()
+        print("RealtimeSTT finalization timed out after grace. Dropping utterance.")
+        if self.reset_on_finalization_timeout:
+            print("RealtimeSTT reset enabled after finalization timeout.")
+            self._reset_recorder()
 
     def feed_audio(self, audio_bytes):
         try:
@@ -130,11 +171,13 @@ class RealtimeSpeechTranscriber:
                 return
 
             self.awaiting_final_text = True
+            self.finalization_token += 1
+            token = self.finalization_token
 
         trailing_silence = b"\x00\x00" * int(self.sample_rate * 0.8)
         self.feed_audio(trailing_silence)
 
-        threading.Thread(target=self._finalization_watchdog, daemon=True).start()
+        threading.Thread(target=self._finalization_watchdog, args=(token,), daemon=True).start()
 
     def shutdown(self):
         self.stop_event.set()

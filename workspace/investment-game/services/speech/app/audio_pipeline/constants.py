@@ -1,5 +1,12 @@
 import os
 
+
+def _env_flag(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
 # Mic TCP server bind settings (Pepper streams mic PCM here).
 HOST = "0.0.0.0"
 PORT_MIC = 9702
@@ -43,7 +50,7 @@ OSD_MAX_GAIN = 60.0
 # Lag search step size for template alignment (milliseconds).
 OSD_TEMPLATE_LAG_STEP_MS = 20
 # Whether to apply denoising before OSD inference.
-OSD_USE_DENOISE = True
+OSD_USE_DENOISE = _env_flag("OSD_USE_DENOISE", default=False)
 
 # Fast overlap heuristic window and cadence (lighter than OSD model).
 OVERLAP_CHECK_WINDOW_MS = 600
