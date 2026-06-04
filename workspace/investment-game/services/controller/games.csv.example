@@ -1,0 +1,7 @@
+player_id,game,trustworthiness,condition
+1,1,T,LLM
+1,2,T,ALG
+2,1,U,LLM
+2,2,U,ALG
+3,1,T,SEL-LLM
+3,2,T,SEL-ALG

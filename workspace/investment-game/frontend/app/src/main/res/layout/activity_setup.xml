@@ -49,6 +49,22 @@
         android:textColorHint="@color/text_muted"
         android:textSize="20sp" />
 
+    <EditText
+        android:id="@+id/participant_id"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/input_panel"
+        android:hint="@string/hint_participant_id"
+        android:inputType="text"
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="14dp"
+        android:textColor="@color/text_primary"
+        android:textColorHint="@color/text_muted"
+        android:textSize="20sp" />
+
     <Button
         android:id="@+id/connect"
         android:layout_width="match_parent"

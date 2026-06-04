@@ -9,6 +9,7 @@ services:
     volumes:
       - ./controller/observations/:/observations
       - ./controller/app/:/app:ro
+      - ./controller/games.csv:/games.csv:ro
 
   speech:
     build: ./speech

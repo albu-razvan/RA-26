@@ -45,6 +45,11 @@ if [[ -z "${COMPUTER_IP:-}" ]]; then
     exit 1
 fi
 
+if [[ ! -f "$SCRIPT_DIR/controller/games.csv" ]]; then
+    echo "Error: controller/games.csv is missing. Create it from controller/games.csv.example."
+    exit 1
+fi
+
 # Make sure all the resolved symlinks are cleaned up here
 trap '
 echo "Cleaning up resolved symlinks..."

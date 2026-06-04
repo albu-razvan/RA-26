@@ -1,5 +1,6 @@
 import json
 import random
+import re
 
 from azure_openai import generate_response
 
@@ -246,6 +247,131 @@ GENERAL_RESPONSES = [
     },
 ]
 
+_WORD_RE = re.compile(r"[a-z0-9']+")
+
+_INTENT_KEYWORDS = {
+    "greeting": {
+        "hi",
+        "hello",
+        "hey",
+        "good",
+        "morning",
+        "afternoon",
+        "evening",
+    },
+    "identity": {
+        "who",
+        "pepper",
+        "robot",
+        "name",
+        "you",
+        "created",
+        "softbank",
+    },
+    "wellbeing": {"how", "are", "you", "doing", "feel", "okay", "fine"},
+    "thanks": {"thanks", "thank", "appreciate", "great", "nice"},
+    "farewell": {"bye", "goodbye", "later", "see", "farewell"},
+    "game": {
+        "game",
+        "invest",
+        "investment",
+        "bank",
+        "round",
+        "return",
+        "risk",
+        "tablet",
+    },
+}
+
+_INTENT_RESPONSE_PATTERNS = {
+    "greeting": [r"\b(hi|hello|hey|good day)\b"],
+    "identity": [r"\b(i'?m pepper|social robot|softbank|humanoid)\b"],
+    "wellbeing": [r"\b(i'?m doing well|feeling great|ready to play|energized)\b"],
+    "thanks": [r"\b(you'?re welcome|thank you|thanks)\b"],
+    "farewell": [r"\b(goodbye|see you|farewell|rest of your day|bye)\b"],
+    "game": [r"\b(game|invest|investment|bank|tablet|risk|strategy)\b"],
+}
+
+
+def _tokenize(text):
+    return set(_WORD_RE.findall((text or "").lower()))
+
+
+def _infer_intent(user_input):
+    tokens = _tokenize(user_input)
+    best_intent = "game"
+    best_score = 0
+
+    for intent, keywords in _INTENT_KEYWORDS.items():
+        score = len(tokens.intersection(keywords))
+        if score > best_score:
+            best_intent = intent
+            best_score = score
+
+    return best_intent
+
+
+def _matches_intent(response_text, intent):
+    patterns = _INTENT_RESPONSE_PATTERNS.get(intent, [])
+    if not patterns:
+        return True
+
+    lower_text = (response_text or "").lower()
+    return any(re.search(pattern, lower_text) for pattern in patterns)
+
+
+def _keyword_choose_general_response(filled_templates, user_input):
+    if not filled_templates:
+        return {"text": "", "movement": "lean"}
+
+    intent = _infer_intent(user_input)
+    matches = [
+        template
+        for template in filled_templates
+        if _matches_intent(template.get("text", ""), intent)
+    ]
+
+    if not matches:
+        matches = [
+            template
+            for template in filled_templates
+            if _matches_intent(template.get("text", ""), "game")
+        ]
+
+    if not matches:
+        matches = filled_templates
+
+    return random.choice(matches)
+
+
+def _keyword_choose_game_response(filled_templates, event):
+    if not filled_templates:
+        return {"text": "", "movement": "lean"}
+
+    investment = int(event.get("investment_from_human", 0) or 0)
+    returned = int(event.get("returned_by_robot", 0) or 0)
+
+    if event.get("state") == "GAME_FINISHED":
+        finished_matches = [
+            template for template in filled_templates if "bank" in template.get("text", "").lower()
+        ]
+        return random.choice(finished_matches or filled_templates)
+
+    if returned >= investment and investment > 0:
+        positive_matches = [
+            template
+            for template in filled_templates
+            if re.search(r"\b(great|good|smart|well done|nice)\b", template.get("text", "").lower())
+        ]
+        return random.choice(positive_matches or filled_templates)
+
+    info_matches = [
+        template
+        for template in filled_templates
+        if re.search(r"\b(bank|returned|investment|invested)\b", template.get("text", "").lower())
+    ]
+    return random.choice(info_matches or filled_templates)
+
 
 def _format_templates(templates, game, event=None):
     filled_templates = []
@@ -327,3 +453,19 @@ def handle_speech(input_text):
         raise Exception("`text` field is missing")
 
     return _llm_choose_general_response(GENERAL_RESPONSES, input_text)
+
+
+def handle_game_event_keyword(event, game_state):
+    current_state = event.get("state", "GAME_ONGOING")
+    templates_for_state = PREDEFINED_RESPONSES.get(
+        current_state, PREDEFINED_RESPONSES["GAME_ONGOING"]
+    )
+    filled = _format_templates(templates_for_state, game_state["game"], event)
+    return _keyword_choose_game_response(filled, event)
+
+
+def handle_speech_keyword(input_text):
+    if input_text is None:
+        raise Exception("`text` field is missing")
+
+    return _keyword_choose_general_response(GENERAL_RESPONSES, input_text)

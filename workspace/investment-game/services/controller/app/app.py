@@ -13,6 +13,14 @@ def api_start_game():
     return game.start_game()
 
 
+@app.route("/configure-participant", methods=["POST"])
+def api_configure_participant():
+    data = request.get_json() or {}
+    participant_id = data.get("participant_id")
+    override = bool(data.get("override", False))
+    return game.configure_participant(participant_id, override=override)
+
+
 @app.route("/invest", methods=["POST"])
 def api_invest():
     return game.invest(request)
@@ -60,9 +68,13 @@ def api_status():
                 "game_limit": state.get("game_limit", 0),
                 "has_next_game": state.get("has_next_game", False),
                 "participant_complete": state.get("participant_complete", False),
+                "participant_configured": state.get("participant_configured", False),
+                "participant_id": state.get("participant_id"),
                 "condition": state.get("condition"),
+                "current_game_number": state.get("current_game_number"),
                 "current_trustworthiness": state.get("current_trustworthiness"),
                 "next_condition": state.get("next_condition"),
+                "next_game_number": state.get("next_game_number"),
                 "next_trustworthiness": state.get("next_trustworthiness"),
             }
         )
@@ -79,9 +91,15 @@ def api_log_system_event():
 
         game_state = game.get_state()
         player_id = game_state.get("player_id")
+        game_number = game_state.get("current_game_number")
 
         if player_id:
-            log_conversation(player_id, "System ({})".format(event_type), text=text)
+            log_conversation(
+                player_id,
+                "System ({})".format(event_type),
+                text=text,
+                game_number=game_number,
+            )
 
         return jsonify({"status": "ok"})
     except Exception as exception:

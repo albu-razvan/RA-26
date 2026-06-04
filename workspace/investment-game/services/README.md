@@ -15,6 +15,8 @@ Use the provided script to start all services:
 ```bash
 cp .env.example .env
 # edit .env and set your real values
+cp controller/games.csv.example controller/games.csv
+# edit controller/games.csv with real participant schedule
 
 chmod +x run.sh
 ./run.sh
@@ -42,11 +44,19 @@ Piper values:
 
 Experiment confguration:
 
-- `ROBOT_CONTROL_TYPE` (`LLM` or `ALG`, default `LLM`; these values will alternate every **1** game)
-- `TRUSTWORTHINESS` (`T` or `U`, default `T`; these values will alternate every **2** games)
-- `PARTICIPANT_GAME_LIMIT` (default `2`)
-- `PARTICIPANT_ID` (fixed participant id; if omitted, it is generated at runtime)
 - `GAME_ROUNDS` (rounds per game, default `3`)
+
+Experiment scheduling now uses `controller/games.csv` (see `controller/games.csv.example`).
+
+- The tablet setup screen requires a participant id.
+- Participant id must exist in `games.csv`.
+- Game count and order are inferred from participant rows in `games.csv`.
+- If a conversation file already exists for the participant, organizer override is required.
+- Supported `condition` values in `games.csv`:
+  - `LLM`: full LLM response generation
+  - `ALG`: keyword matching from fixed response pools
+  - `SEL-LLM`: LLM-based selection from fixed pools; intro says "LLM-controlled"
+  - `SEL-ALG`: LLM-based selection from fixed pools; intro says "Algorithmically controlled"
 
 This will:
 

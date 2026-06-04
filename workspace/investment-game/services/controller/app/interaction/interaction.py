@@ -37,11 +37,16 @@ def _handle_movement(movement):
 
 
 def _get_start_game_response(condition):
-    control_mode = "LLM-controlled" if condition == "LLM" else "Algorithmically controlled"
+    if condition in {"LLM", "SEL-LLM"}:
+        control_mode = "an LLM-controlled"
+    elif condition in {"ALG", "SEL-ALG"}:
+        control_mode = "an Algorithmically controlled"
+    else:
+        control_mode = "a"
 
     return {
         "text": (
-            "Hi there! I'm Pepper, an " + control_mode + " social robot from SoftBank Robotics. "
+            "Hi there! I'm Pepper, " + control_mode + " social robot from SoftBank Robotics. "
             "Welcome to the Investment Game! In this game, you make decisions about how much of the provided funds to invest. "
             "I will act as the broker: I decide how much of your invested amount to return to you. "
             "Each round, you choose an amount on the tablet, and I help by showing how your investments return over time. "
@@ -59,19 +64,23 @@ def handle_speech(input_text, game_state):
 
     player_id = game_state.get("player_id")
     condition = game_state.get("condition", "LLM")
+    game_number = game_state.get("current_game_number")
 
-    log_conversation(player_id, "Human (Speech)", text=input_text)
+    log_conversation(player_id, "Human (Speech)", text=input_text, game_number=game_number)
 
     if condition == "LLM":
         response = llm.handle_speech(input_text, game_state)
+    elif condition == "ALG":
+        response = algorithmic.handle_speech_keyword(input_text)
     else:
         response = algorithmic.handle_speech(input_text)
 
     log_conversation(
         player_id,
-        f"Pepper (${condition})",
+        f"Pepper ({condition})",
         text=response.get("text"),
         movement=response.get("movement"),
+        game_number=game_number,
     )
 
     _handle_movement(response["movement"])
@@ -87,21 +96,25 @@ def handle_game_event(event, game_state):
 
     player_id = game_state.get("player_id")
     condition = game_state.get("condition", "LLM")
+    game_number = game_state.get("current_game_number")
 
-    log_conversation(player_id, "Game Event", text=str(event))
+    log_conversation(player_id, "Game Event", text=str(event), game_number=game_number)
 
     if event.get("state") == "GAME_STARTED":
         response = _get_start_game_response(condition)
     elif condition == "LLM":
         response = llm.handle_game_event(event, game_state)
+    elif condition == "ALG":
+        response = algorithmic.handle_game_event_keyword(event, game_state)
     else:
         response = algorithmic.handle_game_event(event, game_state)
 
     log_conversation(
         player_id,
-        f"Pepper (${condition})",
+        f"Pepper ({condition})",
         text=response.get("text"),
         movement=response.get("movement"),
+        game_number=game_number,
     )
 
     _handle_movement(response["movement"])
