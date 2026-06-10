@@ -367,7 +367,7 @@ def invest(request):
 
     returned, min_returned, max_returned = _generate_return(investment, _game["robot_type"])
 
-    _game["bank"] += returned
+    _game["bank"] += (ROUND_BUDGET - investment + returned)
     _game["round"] += 1
 
     response = {
