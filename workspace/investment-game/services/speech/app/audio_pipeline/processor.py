@@ -34,7 +34,7 @@ from service_clients import (
     animate_pepper,
     get_controller_status,
     interrupt_pepper,
-    is_game_not_started,
+    does_game_accept_speech,
     set_pepper_state,
 )
 from speech import (
@@ -201,7 +201,7 @@ class AudioProcessor:
         status = get_controller_status(timeout=0.2)
         self.captured_version = status.get("state_version", 0)
 
-        if is_game_not_started(status):
+        if not does_game_accept_speech(status):
             self.consecutive_speech = 0
             self.ring_buffer.clear()
             return

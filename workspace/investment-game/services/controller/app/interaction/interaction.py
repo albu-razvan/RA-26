@@ -57,7 +57,7 @@ def _get_start_game_response(condition):
 
 
 def handle_speech(input_text, game_state):
-    if game_state.get("state") == "GAME_NOT_STARTED":
+    if game_state.get("state") != "GAME_ONGOING":
         return ""
 
     _set_pepper_state("processing")

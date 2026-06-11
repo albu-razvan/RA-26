@@ -13,8 +13,8 @@ def get_controller_status(timeout=0.2):
         return {"state": "GAME_NOT_STARTED", "state_version": 0}
 
 
-def is_game_not_started(status):
-    return status.get("state", "GAME_NOT_STARTED") == "GAME_NOT_STARTED"
+def does_game_accept_speech(status):
+    return status.get("state", "GAME_NOT_STARTED") == "GAME_ONGOING"
 
 
 def interrupt_pepper(timeout=1):

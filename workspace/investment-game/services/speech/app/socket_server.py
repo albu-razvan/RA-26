@@ -17,7 +17,7 @@ from audio_pipeline.realtime_stt import RealtimeSpeechTranscriber
 
 from speech import process_speech
 from pepper import speak
-from service_clients import get_controller_status, is_game_not_started
+from service_clients import get_controller_status, does_game_accept_speech
 
 
 def _build_osd_detector():
@@ -40,8 +40,8 @@ def _build_osd_detector():
 
 def handle_recognized_speech(text, state_version):
     status = get_controller_status(timeout=1)
-    if is_game_not_started(status):
-        print("Game has not started. Dropping recognized speech.")
+    if not does_game_accept_speech(status):
+        print("Game does not currently accept speech. Dropping recognized speech.")
         return
 
     if status.get("state_version", 0) != state_version:
@@ -53,8 +53,8 @@ def handle_recognized_speech(text, state_version):
         return
 
     status = get_controller_status(timeout=1)
-    if is_game_not_started(status):
-        print("Game has not started. Dropping speech response.")
+    if not does_game_accept_speech(status):
+        print("Game does not currently accept speech. Dropping recognized speech.")
         return
 
     if status.get("state_version", 0) != state_version:
