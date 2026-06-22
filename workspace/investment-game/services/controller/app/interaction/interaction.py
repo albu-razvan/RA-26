@@ -1,3 +1,4 @@
+import os
 import requests
 
 from . import llm
@@ -5,6 +6,8 @@ from . import algorithmic
 
 from typing import Literal
 from logger import log_conversation
+
+ALG_ACCEPT_SPEECH = os.getenv("ALG_ACCEPT_SPEECH", "false").lower() in ("true", "1", "yes")
 
 SPEECH_API_URL = "http://speech:9701/speak"
 SPEECH_INTERRUPT_URL = "http://speech:9701/interrupt"
@@ -60,12 +63,14 @@ def handle_speech(input_text, game_state):
     if game_state.get("state") != "GAME_ONGOING":
         return ""
 
-    _set_pepper_state("processing")
-
     player_id = game_state.get("player_id")
     condition = game_state.get("condition", "LLM")
     game_number = game_state.get("current_game_number")
 
+    if condition == "ALG" and not ALG_ACCEPT_SPEECH:
+        return ""
+    
+    _set_pepper_state("processing")
     log_conversation(player_id, "Human (Speech)", text=input_text, game_number=game_number)
 
     if condition == "LLM":
