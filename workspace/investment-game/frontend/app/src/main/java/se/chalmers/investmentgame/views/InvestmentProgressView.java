@@ -16,8 +16,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class InvestmentProgressView extends View {
-    private final int COLOR_GAIN = Color.parseColor("#17A34A");
-    private final int COLOR_LOSS = Color.parseColor("#DC2626");
+    private final int COLOR_GAIN = Color.parseColor("#0077B6");
+    private final int COLOR_LOSS = Color.parseColor("#0077B6");
     private final int COLOR_BG = Color.parseColor("#F0F0F0");
     private final int COLOR_BORDER = Color.parseColor("#E4E4E7");
     private final int COLOR_DIVIDER = Color.parseColor("#BEBEC2");
