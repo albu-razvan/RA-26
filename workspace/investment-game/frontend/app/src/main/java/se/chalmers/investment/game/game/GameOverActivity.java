@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.game;
+package se.chalmers.investment.game.game;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -9,13 +9,13 @@ import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 
-import se.chalmers.investmentgame.R;
-import se.chalmers.investmentgame.api.ApiPromise;
-import se.chalmers.investmentgame.api.ApiRequest;
-import se.chalmers.investmentgame.api.ApiResult;
-import se.chalmers.investmentgame.api.types.StatusResponse;
-import se.chalmers.investmentgame.api.types.StartGameResponse;
-import se.chalmers.investmentgame.utils.KioskActivity;
+import se.chalmers.investment.game.R;
+import se.chalmers.investment.game.api.ApiPromise;
+import se.chalmers.investment.game.api.ApiRequest;
+import se.chalmers.investment.game.api.ApiResult;
+import se.chalmers.investment.game.api.types.StatusResponse;
+import se.chalmers.investment.game.api.types.StartGameResponse;
+import se.chalmers.investment.game.utils.KioskActivity;
 
 public class GameOverActivity extends KioskActivity {
     public static final String BANK_INTENT_KEY = "BankGameValue";

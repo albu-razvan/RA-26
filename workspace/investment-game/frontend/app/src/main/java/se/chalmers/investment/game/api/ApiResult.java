@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.api;
+package se.chalmers.investment.game.api;
 
 public class ApiResult<T> {
     public final T data;

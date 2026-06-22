@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.game;
+package se.chalmers.investment.game.game;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -16,12 +16,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import se.chalmers.investmentgame.R;
-import se.chalmers.investmentgame.api.ApiPromise;
-import se.chalmers.investmentgame.api.ApiRequest;
-import se.chalmers.investmentgame.api.ApiResult;
-import se.chalmers.investmentgame.api.types.Game;
-import se.chalmers.investmentgame.api.types.InvestResponse;
+import se.chalmers.investment.game.R;
+import se.chalmers.investment.game.api.ApiPromise;
+import se.chalmers.investment.game.api.ApiRequest;
+import se.chalmers.investment.game.api.ApiResult;
+import se.chalmers.investment.game.api.types.Game;
+import se.chalmers.investment.game.api.types.InvestResponse;
 
 public class GameRecyclerAdapter extends RecyclerView.Adapter<GameRecyclerAdapter.ViewHolder> {
     private static final String TAG = "Adapter";

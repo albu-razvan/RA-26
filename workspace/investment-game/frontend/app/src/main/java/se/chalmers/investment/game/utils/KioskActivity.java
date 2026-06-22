@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.utils;
+package se.chalmers.investment.game.utils;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -13,7 +13,7 @@ import android.view.View;
 import android.widget.Toast;
 
 public class KioskActivity extends Activity {
-    private static final String ACTION_EXIT_KIOSK = "se.chalmers.investmentgame.EXIT_KIOSK";
+    private static final String ACTION_EXIT_KIOSK = "se.chalmers.investment.game.EXIT_KIOSK";
     private static final long EXIT_HOLD_DURATION = 10000; // 10 seconds
     private static boolean IS_TASK_IN_LOCK_MODE = false;
 

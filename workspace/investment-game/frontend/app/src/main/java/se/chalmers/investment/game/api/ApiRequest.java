@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.api;
+package se.chalmers.investment.game.api;
 
 import android.content.Context;
 import android.util.Log;
@@ -17,8 +17,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
-import se.chalmers.investmentgame.GameApplication;
-import se.chalmers.investmentgame.utils.Handlers;
+import se.chalmers.investment.game.GameApplication;
+import se.chalmers.investment.game.utils.Handlers;
 
 public class ApiRequest {
     private static final String TAG = "ApiRequest";

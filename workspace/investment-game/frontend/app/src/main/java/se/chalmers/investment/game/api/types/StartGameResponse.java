@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.api.types;
+package se.chalmers.investment.game.api.types;
 
 import android.os.Parcel;
 import android.os.Parcelable;

@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame;
+package se.chalmers.investment.game;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -6,13 +6,13 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import se.chalmers.investmentgame.api.ApiPromise;
-import se.chalmers.investmentgame.api.ApiRequest;
-import se.chalmers.investmentgame.api.ApiResult;
-import se.chalmers.investmentgame.api.types.StatusResponse;
-import se.chalmers.investmentgame.api.types.StartGameResponse;
-import se.chalmers.investmentgame.game.GameActivity;
-import se.chalmers.investmentgame.utils.KioskActivity;
+import se.chalmers.investment.game.api.ApiPromise;
+import se.chalmers.investment.game.api.ApiRequest;
+import se.chalmers.investment.game.api.ApiResult;
+import se.chalmers.investment.game.api.types.StatusResponse;
+import se.chalmers.investment.game.api.types.StartGameResponse;
+import se.chalmers.investment.game.game.GameActivity;
+import se.chalmers.investment.game.utils.KioskActivity;
 
 public class MainActivity extends KioskActivity {
     private Button startButton;

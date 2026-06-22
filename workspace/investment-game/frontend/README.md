@@ -82,7 +82,7 @@ app/build/outputs/apk/debug/app-debug.apk
 Once the APK is built and your tablet is connected via Wi-Fi ADB:
 
 ```bash
-adb install -r path/to/app-debug.apk
+adb install -t path/to/app-debug.apk
 ```
 
 #### 5. Make Application a Device Admin
@@ -93,7 +93,7 @@ adb install -r path/to/app-debug.apk
 For the Kiosk mode to persist, you need to make the app a device owner:
 
 ```bash
-adb shell dpm set-device-owner se.chalmers.investmentgame/.GameDeviceAdminReceiver
+adb shell dpm set-device-owner se.chalmers.investment.game/.GameDeviceAdminReceiver
 ```
 
 #### 6. Profit?
@@ -109,7 +109,7 @@ You can find the application in the app drawer. Before conducting an experiment,
 > To exit Kiosk mode, run the following command on a computer connected via ADB:
 >
 > ```bash
-> adb shell am broadcast -a se.chalmers.investmentgame.EXIT_KIOSK
+> adb shell am broadcast -a se.chalmers.investment.game.EXIT_KIOSK
 > ```
 >
 > Alternatively, you can exit Kiosk mode by long-pressing the root view of a `KioskActivity` for 10 seconds.

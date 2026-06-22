@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.views;
+package se.chalmers.investment.game.views;
 
 import android.annotation.SuppressLint;
 import android.content.Context;

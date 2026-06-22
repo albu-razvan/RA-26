@@ -84,7 +84,7 @@
         </LinearLayout>
     </LinearLayout>
 
-    <se.chalmers.investmentgame.views.InvestmentProgressView
+    <se.chalmers.investment.game.views.InvestmentProgressView
         android:id="@+id/investment_visualization"
         android:layout_width="match_parent"
         android:layout_height="86dp"

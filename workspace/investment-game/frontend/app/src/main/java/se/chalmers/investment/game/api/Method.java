@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.api;
+package se.chalmers.investment.game.api;
 
 enum Method {
     GET("GET"),

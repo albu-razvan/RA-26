@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame;
+package se.chalmers.investment.game;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -17,10 +17,10 @@ import org.json.JSONObject;
 
 import java.util.regex.Pattern;
 
-import se.chalmers.investmentgame.api.ApiPromise;
-import se.chalmers.investmentgame.api.ApiRequest;
-import se.chalmers.investmentgame.api.ApiResult;
-import se.chalmers.investmentgame.api.types.ConfigureParticipantResponse;
+import se.chalmers.investment.game.api.ApiPromise;
+import se.chalmers.investment.game.api.ApiRequest;
+import se.chalmers.investment.game.api.ApiResult;
+import se.chalmers.investment.game.api.types.ConfigureParticipantResponse;
 
 public class SetupActivity extends Activity {
     private static final Pattern IP_PATTERN =

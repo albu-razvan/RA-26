@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame;
+package se.chalmers.investment.game;
 
 import android.app.admin.DeviceAdminReceiver;
 

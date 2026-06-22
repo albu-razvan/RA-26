@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame;
+package se.chalmers.investment.game;
 
 import android.app.Activity;
 import android.app.Application;
@@ -19,7 +19,7 @@ import androidx.annotation.Nullable;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import se.chalmers.investmentgame.utils.SuUtil;
+import se.chalmers.investment.game.utils.SuUtil;
 
 public class GameApplication extends Application {
     private static final Handler UI_HANDLER = new Handler(Looper.getMainLooper());
@@ -29,7 +29,7 @@ public class GameApplication extends Application {
     public GameApplication() {
         super();
 
-        SuUtil.exec("dpm set-device-owner se.chalmers.investmentgame/.GameDeviceAdminReceiver");
+        SuUtil.exec("dpm set-device-owner se.chalmers.investment.game/.GameDeviceAdminReceiver");
     }
 
     /**

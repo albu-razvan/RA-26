@@ -1,4 +1,4 @@
-package se.chalmers.investmentgame.utils;
+package se.chalmers.investment.game.utils;
 
 import android.util.Log;
 

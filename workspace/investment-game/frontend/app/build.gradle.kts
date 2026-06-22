@@ -3,12 +3,12 @@ plugins {
 }
 
 android {
-    namespace = "se.chalmers.investmentgame"
+    namespace = "se.chalmers.investment.game"
     //noinspection GradleDependency
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "se.chalmers.investmentgame"
+        applicationId = "se.chalmers.investment.game"
         minSdk = 22
         //noinspection ExpiredTargetSdkVersion
         targetSdk = 22
