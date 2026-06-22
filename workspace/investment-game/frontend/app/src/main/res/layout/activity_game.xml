@@ -84,16 +84,31 @@
         </LinearLayout>
     </LinearLayout>
 
-    <se.chalmers.investment.game.views.InvestmentProgressView
-        android:id="@+id/investment_visualization"
-        android:layout_width="match_parent"
-        android:layout_height="86dp"
-        android:layout_marginTop="20dp" />
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_marginTop="20dp">
+
+        <se.chalmers.investment.game.views.InvestmentProgressView
+            android:id="@+id/investment_visualization"
+            android:layout_width="match_parent"
+            android:layout_height="86dp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/summary_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/text_secondary"
+            android:textSize="16sp"
+            android:visibility="invisible"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/investment_visualization" />
 
         <Button
             android:id="@+id/next"
@@ -102,6 +117,7 @@
             android:background="@drawable/button_primary"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"
+            android:layout_marginTop="30dp"
             android:stateListAnimator="@animator/button_press"
             android:text="@string/button_next"
             android:textAllCaps="false"
@@ -109,9 +125,10 @@
             android:textSize="18sp"
             android:textStyle="normal"
             android:visibility="invisible"
+            app:layout_constraintTop_toBottomOf="@id/summary_text"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintRight_toRightOf="parent" />
 
         <LinearLayout
             android:id="@+id/investment_options"
@@ -119,7 +136,7 @@
             android:layout_height="wrap_content"
             android:gravity="center"
             android:orientation="vertical"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/next"
             app:layout_constraintTop_toTopOf="parent">
 
             <TextView

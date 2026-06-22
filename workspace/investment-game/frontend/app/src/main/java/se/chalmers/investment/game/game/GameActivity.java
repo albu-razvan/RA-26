@@ -1,7 +1,10 @@
 package se.chalmers.investment.game.game;
 
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.SpannableString;
+import android.text.style.StyleSpan;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -25,6 +28,7 @@ public class GameActivity extends KioskActivity {
     private TextView budget;
     private TextView round;
     private TextView bank;
+    private TextView summaryText;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -46,6 +50,7 @@ public class GameActivity extends KioskActivity {
         budget = findViewById(R.id.budget);
         round = findViewById(R.id.round);
         bank = findViewById(R.id.bank);
+        summaryText = findViewById(R.id.summary_text);
 
         Game game = new Game(startGameResponse, this::update);
         update(game);
@@ -57,6 +62,8 @@ public class GameActivity extends KioskActivity {
         nextRound.setOnClickListener(view -> {
             investmentOptions.setVisibility(View.VISIBLE);
             nextRound.setVisibility(View.INVISIBLE);
+            investmentVisualization.setVisibility(View.INVISIBLE);
+            summaryText.setVisibility(View.INVISIBLE);
 
             round.setText("ROUND " + (game.getRound() + 1));
         });
@@ -89,10 +96,62 @@ public class GameActivity extends KioskActivity {
         if (game.getRound() == 0) {
             investmentOptions.setVisibility(View.VISIBLE);
             nextRound.setVisibility(View.INVISIBLE);
+            investmentVisualization.setVisibility(View.INVISIBLE);
+            summaryText.setVisibility(View.INVISIBLE);
 
             round.setText("ROUND " + (game.getRound() + 1));
         } else {
             investmentOptions.setVisibility(View.INVISIBLE);
+            investmentVisualization.setVisibility(View.VISIBLE);
+
+            int roundNum = game.getRound();
+            int invested = game.getInvested();
+            int returned = game.getReturned();
+            int uninvested = game.getRoundBudget() - invested;
+            int totalThisRound = uninvested + returned;
+
+            String rStr = String.valueOf(roundNum);
+            String iStr = String.valueOf(invested);
+            String reStr = String.valueOf(returned);
+            String tStr = String.valueOf(totalThisRound);
+            String uStr = String.valueOf(uninvested);
+
+            String line1 = "In round " + rStr + ", you invested " + iStr
+                    + " and received " + reStr + ".";
+            String line2 = "Your total earnings this round were " + tStr + ".";
+            String line3 = "(" + uStr + " unspent budget + " + reStr
+                    + " investment return)";
+            String text = line1 + "\n" + line2 + "\n" + line3;
+
+            SpannableString string = new SpannableString(text);
+            int start, end;
+
+            start = ("In round " + rStr + ", you ").length();
+            end = start + "invested ".length() + iStr.length();
+            string.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
+
+            start = ("In round " + rStr + ", you invested " + iStr + " and ").length();
+            end = start + "received ".length() + reStr.length();
+            string.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
+
+            start = line1.length() + 1 + "Your ".length();
+            end = start + "total".length();
+            string.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
+
+            start = line1.length() + 1 + "Your total earnings this round were ".length();
+            end = start + tStr.length();
+            string.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
+
+            start = line1.length() + 1 + line2.length() + 1 + "(".length();
+            end = start + uStr.length();
+            string.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
+
+            start = line1.length() + 1 + line2.length() + 1 + "(".length() + uStr.length() + " unspent budget + ".length();
+            end = start + reStr.length();
+            string.setSpan(new StyleSpan(Typeface.BOLD), start, end, 0);
+
+            summaryText.setText(string);
+            summaryText.setVisibility(View.VISIBLE);
 
             if (game.getRoundsRemaining() <= 0) {
                 nextRound.setText("End Game");
