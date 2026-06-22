@@ -16,13 +16,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 public class InvestmentProgressView extends View {
-    private final int COLOR_GAIN = Color.parseColor("#0077B6");
-    private final int COLOR_LOSS = Color.parseColor("#0077B6");
-    private final int COLOR_BG = Color.parseColor("#F0F0F0");
-    private final int COLOR_BORDER = Color.parseColor("#E4E4E7");
-    private final int COLOR_DIVIDER = Color.parseColor("#BEBEC2");
-    private final int COLOR_BUBBLE_BG = Color.parseColor("#FFFFFF");
-    private final int COLOR_BUBBLE_STROKE = Color.parseColor("#D4D4D8");
+    private static final int COLOR_GAIN = Color.parseColor("#0077B6");
+    private static final int COLOR_LOSS = Color.parseColor("#0077B6");
+    private static final int COLOR_BG = Color.parseColor("#F0F0F0");
+    private static final int COLOR_BORDER = Color.parseColor("#E4E4E7");
+    private static final int COLOR_DIVIDER = Color.parseColor("#BEBEC2");
+    private static final int COLOR_BUBBLE_BG = Color.parseColor("#FFFFFF");
+    private static final int COLOR_BUBBLE_STROKE = Color.parseColor("#D4D4D8");
+    private static final float PROGRESS_EXTENT_SCALE = 0.75f;
 
     private Paint paint, backgroundPaint, glossPaint, borderPaint;
     private Paint labelPaint, valuePaint, bubblePaint, bubbleBorderPaint;
@@ -111,7 +112,7 @@ public class InvestmentProgressView extends View {
         if (currentProgress != 0) {
             paint.setColor(currentProgress > 0 ? COLOR_GAIN : COLOR_LOSS);
 
-            float progressWidth = ((width - (2f * horizontalPadding)) / 2f) * Math.abs(currentProgress);
+            float progressWidth = ((width - (2f * horizontalPadding)) / 2f) * Math.abs(currentProgress) * PROGRESS_EXTENT_SCALE;
             left = currentProgress > 0 ? centerX : centerX - progressWidth;
             right = currentProgress > 0 ? centerX + progressWidth : centerX;
 
