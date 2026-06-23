@@ -43,7 +43,7 @@ def _get_start_game_response(condition):
     if condition in {"LLM", "SEL-LLM"}:
         control_mode = "an LLM-controlled"
     elif condition in {"ALG", "SEL-ALG"}:
-        control_mode = "an Algorithmically controlled"
+        control_mode = "a pre scripted"
     else:
         control_mode = "a"
 
