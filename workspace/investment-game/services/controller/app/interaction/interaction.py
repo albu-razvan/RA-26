@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 
 from . import llm
@@ -66,10 +67,26 @@ def handle_speech(input_text, game_state):
     condition = game_state.get("condition", "LLM")
     game_number = game_state.get("current_game_number")
 
-    if condition == "ALG" and not ALG_ACCEPT_SPEECH:
-        return ""
-    
     _set_pepper_state("processing")
+
+    if condition == "ALG" and not ALG_ACCEPT_SPEECH:
+        # artificial delay to match other condition processing time
+        time.sleep(0.75)
+        
+        response = {
+            "text": "Sorry, I don't have an answer, let's keep playing.",
+            "movement": "open_arm",
+        }
+        log_conversation(
+            player_id,
+            f"Pepper ({condition})",
+            text=response.get("text"),
+            movement=response.get("movement"),
+            game_number=game_number,
+        )
+        _handle_movement(response["movement"])
+        return response["text"]
+    
     log_conversation(player_id, "Human (Speech)", text=input_text, game_number=game_number)
 
     if condition == "LLM":
