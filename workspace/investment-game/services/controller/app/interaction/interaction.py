@@ -50,10 +50,9 @@ def _get_start_game_response(condition):
     return {
         "text": (
             "Hi there! I'm Pepper, " + control_mode + " social robot from SoftBank Robotics. "
-            "Welcome to the Investment Game! In this game, you make decisions about how much of the provided funds to invest. "
-            "I will act as the broker: I decide how much of your invested amount to return to you. "
-            "Each round, you choose an amount on the tablet, and I help by showing how your investments return over time. "
-            "and I decide how much to return to your bank. Are you ready to start investing? Let's begin with round one now!"
+            "Welcome to the Investment Game! In this game, you decide how much of the provided funds to invest during each round. "
+            "I will receive three times what you invest, and I will decide how much of this invested amount to return to you. "
+            "Are you ready to start investing? Let's begin with round one now!"
         ),
         "movement": "open_arm",
     }
