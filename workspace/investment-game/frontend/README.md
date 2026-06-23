@@ -82,7 +82,7 @@ app/build/outputs/apk/debug/app-debug.apk
 Once the APK is built and your tablet is connected via Wi-Fi ADB:
 
 ```bash
-adb install -t path/to/app-debug.apk
+adb install -r -t path/to/app-debug.apk
 ```
 
 #### 5. Make Application a Device Admin
